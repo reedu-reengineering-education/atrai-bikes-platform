@@ -30,7 +30,7 @@
 ## 6. Danger Zones
 - **Heatmap** of weighted combination of `Overtaking Manoeuvre` (weight = 0.3) and `Overtaking Distance` (weight = 0.7)  
 - **Filtered out data** where relative humidity > 75% (for best accuracy in optical sensors)  
-- **Weighted risk index** similar to danger zones, including:  
+- **Weighted risk index**, including:  
   - `Overtaking Manoeuvre` (0.15)  
   - `Normalized Overtaking Distance` (0.35)  
   - `Normalized PM1` (0.2)  
