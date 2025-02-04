@@ -1,0 +1,69 @@
+# Default config for base Docker Image, override via DockerVolume
+# mapping with your own config.
+server:
+    bind:
+        host: 0.0.0.0
+        port: 80
+    url: /
+    mimetype: application/json; charset=UTF-8
+    encoding: utf-8
+    gzip: false
+    language: en-US
+    cors: true
+    pretty_print: true
+    limit: 10
+    # templates: /path/to/templates
+    map:
+        attribution: '&copy; <a href="https://openstreetmap.org/copyright">OpenStreetMap contributors</a>'
+        url: https://tile.openstreetmap.org/{z}/{x}/{y}.png
+    ogc_schemas_location: /schemas.opengis.net
+    manager:  # optional OGC API - Processes asynchronous job management
+        name: TinyDB  # plugin name (see pygeoapi.plugin for supported process_manager's)
+        connection: /tmp/pygeoapi-process-manager.db  # connection info to store jobs (e.g. filepath)
+        output_dir: /tmp/  # temporary file area for storing job results (files)
+logging:
+    level: DEBUG
+    logfile: /dev/stdout
+metadata:
+    identification:
+        title: pygeoapi atrai
+        description: pygeoapi provides an API to geospatial data
+        keywords:
+            - geospatial
+            - data
+            - api
+            - living-labs
+            - atrai
+            - 52north
+            - reedu
+        keywords_type: theme
+        terms_of_service: ''
+        # might be useful to match server.url above!
+        url: localhost
+    license:
+        name: 'FIXME: TBD, maybe CC-BY 4.0 license'
+        url: https://creativecommons.org/licenses/by/4.0/
+    provider:
+        name: atrai bikes project
+        url: https://atrai.bike
+    contact:
+        name: 52North
+        position: Operator
+        address: Martin-Luther-King-Weg 24
+        city: Münster
+        stateorprovince: NRW
+        postalcode: 48155
+        country: Germany
+        phone: +49-251-396371-0
+        email: j.schnell@52north.org
+        fax: lol
+        url: https://52north.org/about-us/contact-us/
+        hours: Mo-Fr 09:00-16:00 CE(S)T
+        instructions: During hours of service. Off on weekends.
+        role: pointOfContact
+resources:
+    get-osm-data:
+        processor:
+            name: atrai_processes.OSMDataCollector
+        type: process
+
