@@ -66,4 +66,8 @@ resources:
         processor:
             name: atrai_processes.OSMDataCollector
         type: process
+    bumpy-roads:
+        processor:
+            name: atrai_processes.BumpyRoads
+        type: process
 

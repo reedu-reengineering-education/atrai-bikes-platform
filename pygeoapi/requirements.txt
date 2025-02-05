@@ -1,6 +1,7 @@
 cdsapi
 filelock
 Flask-Cors==5.0.0
+folium
 geojson
 geopandas
 h5netcdf
