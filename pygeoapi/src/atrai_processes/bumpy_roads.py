@@ -117,14 +117,14 @@ class BumpyRoads(BaseProcessor):
             LOGGER.error("WRONG INTERNAL API TOKEN")
             raise ProcessorExecuteError('ACCESS DENIED wrong token')
 
-        if self.boxid not in os.listdir(self.data_base_dir):
-            LOGGER.info(f'download data for {self.boxid}')
-            OSM = OpenSenseMap.OpenSenseMap()
-            OSM.add_box(self.boxid)
-            OSM.save_OSM()
+        # if self.boxid not in os.listdir(self.data_base_dir):
+        #     LOGGER.info(f'download data for {self.boxid}')
+        #     OSM = OpenSenseMap.OpenSenseMap()
+        #     OSM.add_box(self.boxid)
+        #     OSM.save_OSM()
 
         #script
-        atrai_bike_data = pd.read_csv(os.path.join(self.data_base_dir, self.boxid, f'{self.boxid}.csv'))
+        atrai_bike_data = pd.read_csv('/pygeoapi/combined_data.csv')
         device_counts = atrai_bike_data.groupby('device_id').size()
         valid_device_ids = device_counts[device_counts >= 10].index
         atrai_bike_data = atrai_bike_data[atrai_bike_data['device_id'].isin(valid_device_ids)]
@@ -155,7 +155,7 @@ class BumpyRoads(BaseProcessor):
 
         outputs = {
             'id': 'bumpy_roads',
-            'status': f"created html at '{os.path.join(self.html_out, "road_roughness_colored_map.html")}"
+            'status': f"""created html at '{os.path.join(self.html_out, "road_roughness_colored_map.html")}'"""
         }
 
         return mimetype, outputs
