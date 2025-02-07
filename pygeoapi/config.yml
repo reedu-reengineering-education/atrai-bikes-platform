@@ -70,4 +70,7 @@ resources:
         processor:
             name: atrai_processes.BumpyRoads
         type: process
-
+    temperature:
+        processor:
+            name: atrai_processes.Temperature
+        type: process
