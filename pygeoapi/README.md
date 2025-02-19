@@ -9,7 +9,7 @@ All maps were created with bounding boxes to exclude data from outside Münster 
 - **Additional Info**: Number of data points per road segment displayed in the pop-ups.
 
 ## 2. Traffic Flow Map
-- **Traffic Flow Index**: \( \text{Normalized Speed} \times (1 - \text{Standing}^2) \), where the "Standing" parameter has twice the weight.
+- **Traffic Flow Index**: $\( \text{Normalized Speed} \times (1 - \text{Standing}^2) \)$, where the "Standing" parameter has twice the weight.
 - **Standing**: Probability of the bike standing still (0-1 range).
 - **Normalized Speed**: Normalized using the 99.9th percentile.
 - **Road Network**: Same as the Speed Map.
@@ -39,22 +39,22 @@ All maps were created with bounding boxes to exclude data from outside Münster 
 
 ## 7. Danger Zones
 - **Risk Index (RI)**: Weighted combination of "Overtaking Maneuver" and "Overtaking Distance":
-  
+  $$
   \[
   RI = 0.3 \times \text{Overtaking Maneuver} + 0.7 \times (1 - \text{Normalized Distance})
   \]
-
+  $$
 - **Distance Normalization**: Maximum measurable distance is 400 cm.
 - **Data Filtering**: Only includes data points where "Overtaking Maneuver" > 0.05.
 
 ## 8. Danger Zones with PM
 - **Correction Methods**: Same as the PM2.5 Heatmap and Timeframe Heatmap.
 - **Weighted Risk Index (RI)**: Includes PM data and overtaking parameters:
-
+  $$
   \[
   RI = 0.15 \times \text{Overtaking Maneuver} + 0.35 \times (1 - \text{Normalized Distance}) + 0.2 \times \text{PM1} + 0.15 \times \text{PM2.5} + 0.1 \times \text{PM4} + 0.05 \times \text{PM10}
   \]
-
+  $$
 - **Weighting**: Smaller PM fractions are weighted higher due to their greater potential harm.
 
 ## 9. Road Roughness Colored Map
@@ -66,11 +66,11 @@ All maps were created with bounding boxes to exclude data from outside Münster 
   - Sett (4)
 
 - **Road Roughness Score (RRS)**:
-
+  $$
   \[
   RRS = 1 \times \text{Asphalt} + 2 \times \text{Paving} + 3 \times \text{Compacted} + 4 \times \text{Sett}
   \]
-
+  $$
 - **Normalization**: RRS is normalized to a Road Roughness Index (0-100 range).
 
 ## 10. PM Boxplots
