@@ -6,9 +6,8 @@ import pandas as pd
 from opensensemaptoolbox import OpenSenseMap
 import folium
 
-from .html_helper import legend_html
-
-
+from .html_helper import legend_html_bumpy_roads
+from .useful_functs import filter_bike_data_location
 
 
 
@@ -128,8 +127,9 @@ class BumpyRoads(BaseProcessor):
         device_counts = atrai_bike_data.groupby('device_id').size()
         valid_device_ids = device_counts[device_counts >= 10].index
         atrai_bike_data = atrai_bike_data[atrai_bike_data['device_id'].isin(valid_device_ids)]
+        filtered_data_MS = filter_bike_data_location(atrai_bike_data)
 
-        road_roughness = atrai_bike_data[
+        road_roughness = filtered_data_MS[
             ['Surface Asphalt', 'Surface Sett', 'Surface Compacted', 'Surface Paving', 'lng', 'lat']].copy()
         road_roughness = road_roughness.dropna(
             subset=['Surface Asphalt', 'Surface Sett', 'Surface Compacted', 'Surface Paving'])
@@ -137,7 +137,7 @@ class BumpyRoads(BaseProcessor):
         road_roughness['Roughness'] = road_roughness.apply(calculate_roughness, axis=1)
         road_roughness['Roughness_Normalized'] = (road_roughness['Roughness'] / road_roughness['Roughness'].max()) * 100
         road_roughness_clean = road_roughness.dropna(subset=['lat', 'lng', 'Roughness_Normalized'])
-        m_roughness = folium.Map(location=[51.9625, 7.6256], zoom_start=13)
+        m_roughness = folium.Map(location=[51.9607, 7.6261], zoom_start=14)
 
         for idx, row in road_roughness_clean.iterrows():
             lat = row['lat']
@@ -147,7 +147,7 @@ class BumpyRoads(BaseProcessor):
             folium.CircleMarker([lat, lng], radius=5, color=color, fill=True, fill_color=color, fill_opacity=1).add_to(
                 m_roughness)
 
-        legend = folium.Element(legend_html)
+        legend = folium.Element(legend_html_bumpy_roads)
         m_roughness.get_root().html.add_child(legend)
 
         os.makedirs(self.html_out, exist_ok=True)

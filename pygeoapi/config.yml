@@ -74,3 +74,19 @@ resources:
         processor:
             name: atrai_processes.Temperature
         type: process
+    distances:
+        processor:
+            name: atrai_processes.Distances
+        type: process
+    speed-traffic-flow:
+        processor:
+            name: atrai_processes.SpeedTrafficFlow
+        type: process
+    pm-analysis:
+        processor:
+            name: atrai_processes.PMAnalysis
+        type: process
+    dangerous-places:
+        processor:
+            name: atrai_processes.DangerousPlaces
+        type: process
