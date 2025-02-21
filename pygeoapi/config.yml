@@ -62,10 +62,6 @@ metadata:
         instructions: During hours of service. Off on weekends.
         role: pointOfContact
 resources:
-    get-osm-data:
-        processor:
-            name: atrai_processes.OSMDataCollector
-        type: process
     bumpy-roads:
         processor:
             name: atrai_processes.BumpyRoads
@@ -90,3 +86,12 @@ resources:
         processor:
             name: atrai_processes.DangerousPlaces
         type: process
+providers:
+  - type: feature
+    name: my_postgis_layer
+    data:
+      source: postgresql://postgres:postgres@postgis:5432/geoapi_db
+      table: my_table
+    id_field: id
+    geometry_field: geom
+    srs: 4326

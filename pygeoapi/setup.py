@@ -38,6 +38,7 @@ setuptools.setup(
         "netcdf4",
         "numpy==1.24.0",
         "osmnx",
+        "psycopg2-binary",
         "pygeoapi",
         "python-dotenv",
         "rasterio",
@@ -47,6 +48,7 @@ setuptools.setup(
         "seaborn",
         "shapely",
         "shyaml",
+        "sqlalchemy",
         "tifffile",
         "xarray==2024.1.0",
         "zarr"

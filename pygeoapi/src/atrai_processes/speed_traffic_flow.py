@@ -9,12 +9,14 @@ import matplotlib.cm as cm
 import matplotlib.colors as mcolors
 import numpy as np
 from sklearn.neighbors import BallTree
-import osmnx as ox
+from sqlalchemy import create_engine
 
 from .html_helper import create_speed_legend_html, create_traffic_flow_legend_html
 from .useful_functs import filter_bike_data_location, nearest_neighbor_search
 
 LOGGER = logging.getLogger(__name__)
+
+DB_URL = "postgresql://postgres:postgres@postgis:5432/geoapi_db"
 
 METADATA = {
     'version': '0.2.0',
@@ -123,10 +125,9 @@ class SpeedTrafficFlow(BaseProcessor):
         valid_device_ids = device_counts[device_counts >= 10].index
         atrai_bike_data = atrai_bike_data[atrai_bike_data['device_id'].isin(valid_device_ids)]
         
-        road_network_muenster = ox.graph_from_place("Münster, Germany", network_type='bike')
-        nodes, edges = ox.graph_to_gdfs(road_network_muenster)
-        edges_filtered = edges[~edges['highway'].isin(['primary', 'secondary', 'tertiary'])]
-        #edges_filtered = edges_filtered.to_crs(epsg=4326)
+        engine = create_engine(DB_URL)
+        road_network_query = "SELECT * FROM muenster_bike_roads"
+        edges_filtered = gpd.read_postgis(road_network_query, engine, geom_col='geometry')
 
         filtered_data_MS = filter_bike_data_location(atrai_bike_data)
 

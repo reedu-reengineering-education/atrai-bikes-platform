@@ -12,9 +12,9 @@ RUN apt-get update \
         vim \
     && rm -rf /var/lib/apt/lists/*
 
-WORKDIR /osm_toolbox
-RUN git clone https://github.com/52North/OpenSenseMapToolbox.git .
-RUN pip install .
+#WORKDIR /osm_toolbox
+#RUN git clone --branch feat/sanitized_names https://github.com/jonathan2001/OpenSenseMapToolbox.git
+#RUN pip install -r /osm_toolbox/OpenSenseMapToolbox/req.txt
 
 WORKDIR /pygeoapi
 

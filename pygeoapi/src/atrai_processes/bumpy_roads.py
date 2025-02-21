@@ -3,7 +3,6 @@ import logging
 from pygeoapi.process.base import BaseProcessor, ProcessorExecuteError
 
 import pandas as pd
-from opensensemaptoolbox import OpenSenseMap
 import folium
 
 from .html_helper import legend_html_bumpy_roads

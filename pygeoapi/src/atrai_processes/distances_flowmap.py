@@ -3,7 +3,6 @@ import logging
 from pygeoapi.process.base import BaseProcessor, ProcessorExecuteError
 
 import pandas as pd
-from opensensemaptoolbox import OpenSenseMap
 import folium
 import osmnx as ox
 from shapely.geometry import Point, LineString
@@ -12,11 +11,14 @@ import numpy as np
 from sklearn.neighbors import BallTree
 import matplotlib.colors as mcolors
 import matplotlib.cm as cm
+from sqlalchemy import create_engine
 
 from .html_helper import create_distances_legend_html
 from .useful_functs import filter_bike_data_location, nearest_neighbor_search
 
 LOGGER = logging.getLogger(__name__)
+
+DB_URL = "postgresql://postgres:postgres@postgis:5432/geoapi_db"
 
 METADATA = {
     'version': '0.2.0',
@@ -111,11 +113,9 @@ class Distances(BaseProcessor):
         valid_device_ids = device_counts[device_counts >= 10].index
         atrai_bike_data = atrai_bike_data[atrai_bike_data['device_id'].isin(valid_device_ids)]
 
-        #probably would be good to have in database:
-        road_network_muenster = ox.graph_from_place("Münster, Germany", network_type='bike')
-        nodes, edges = ox.graph_to_gdfs(road_network_muenster)
-        # Filter out major roads
-        edges_filtered = edges[~edges['highway'].isin(['primary', 'secondary', 'tertiary'])]
+        engine = create_engine(DB_URL)
+        road_network_query = "SELECT * FROM muenster_bike_roads"
+        edges_filtered = gpd.read_postgis(road_network_query, engine, geom_col='geometry')
 
         filtered_data_MS = filter_bike_data_location(atrai_bike_data)
 
