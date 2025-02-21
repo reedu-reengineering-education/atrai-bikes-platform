@@ -1,5 +1,7 @@
 # Münster Bike Data Maps
 
+data (via openSenseMap API): https://github.com/jonathan2001/OpenSenseMapToolbox.git
+
 All maps were created with bounding boxes to exclude data from outside Münster and from inside the reedu office building. Only devices (device IDs) with at least 10 measurements are considered in the analysis.
 
 ## 1. Speed Map
