@@ -9,7 +9,7 @@ def import_muenster_bike_network():
     _, edges = ox.graph_to_gdfs(road_network_muenster)
     edges_filtered = edges[~edges['highway'].isin(['primary', 'secondary', 'tertiary'])]
     engine = create_engine(DB_URL)
-    edges_filtered.to_postgis("muenster_bike_roads", engine, if_exists="replace", index=False)
+    edges_filtered.to_postgis("bike_road_network", engine, if_exists="replace", index=False)
 
 if __name__ == "__main__":
     import_muenster_bike_network()

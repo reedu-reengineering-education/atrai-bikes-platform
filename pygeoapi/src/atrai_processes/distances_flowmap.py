@@ -114,7 +114,7 @@ class Distances(BaseProcessor):
         atrai_bike_data = atrai_bike_data[atrai_bike_data['device_id'].isin(valid_device_ids)]
 
         engine = create_engine(DB_URL)
-        road_network_query = "SELECT * FROM muenster_bike_roads"
+        road_network_query = "SELECT * FROM bike_road_network"
         edges_filtered = gpd.read_postgis(road_network_query, engine, geom_col='geometry')
 
         filtered_data_MS = filter_bike_data_location(atrai_bike_data)

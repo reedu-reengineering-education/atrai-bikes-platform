@@ -90,6 +90,10 @@ resources:
         processor:
             name: atrai_processes.Statistics
         type: process
+    road_network:
+        processor: 
+            name: atrai_processes.RoadNetwork
+        type: process
     road_roughness:  # Resource for your PostgreSQL table
         type: collection
         title: Road Roughness
