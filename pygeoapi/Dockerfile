@@ -25,6 +25,7 @@ COPY . .
 #RUN cp ids /osm_toolbox/ids
 #RUN python3 /osm_toolbox/main.py --file /osm_toolbox/ids
 
+COPY config.yml /pygeoapi/local.config.yml
 
 RUN pip install . \
     && rm -rf ./process
