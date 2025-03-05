@@ -86,12 +86,36 @@ resources:
         processor:
             name: atrai_processes.DangerousPlaces
         type: process
-providers:
-  - type: feature
-    name: my_postgis_layer
-    data:
-      source: postgresql://postgres:postgres@postgis:5432/geoapi_db
-      table: my_table
-    id_field: id
-    geometry_field: geom
-    srs: 4326
+    calculate_statistics:
+        processor:
+            name: atrai_processes.Statistics
+        type: process
+    road_roughness:  # Resource for your PostgreSQL table
+        type: collection
+        title: Road Roughness
+        description: Road roughness data
+        keywords:
+            - geospatial
+            - data
+        links:
+            - type: text/html
+              rel: canonical
+              title: data
+              href: http://example.org
+              hreflang: en-US
+        extents:
+            spatial:
+                bbox: [-180, -90, 180, 90]
+                crs: http://www.opengis.net/def/crs/OGC/1.3/CRS84
+        providers: 
+            - type: feature
+              name: PostgreSQL
+              data:
+                  host: ${DATABASE_HOST}
+                  port: ${DATABASE_PORT}
+                  dbname: ${DATABASE_NAME}
+                  user: ${DATABASE_USER}
+                  password: ${DATABASE_PASSWORD}
+              table: road_roughness
+              geom_field: geom
+              id_field: id

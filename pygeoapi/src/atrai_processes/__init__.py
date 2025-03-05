@@ -4,3 +4,4 @@ from .distances_flowmap import Distances
 from .speed_traffic_flow import SpeedTrafficFlow
 from .pm_analysis import PMAnalysis
 from .dangerous_places import DangerousPlaces
+from .statistics import Statistics
