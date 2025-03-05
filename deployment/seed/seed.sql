@@ -1,0 +1,1 @@
+CREATE TABLE IF NOT EXISTS road_roughness (id SERIAL PRIMARY KEY, geom GEOMETRY(Point, 4326), roughness FLOAT);
