@@ -18,8 +18,6 @@ from .useful_functs import filter_bike_data_location, nearest_neighbor_search
 
 LOGGER = logging.getLogger(__name__)
 
-DB_URL = "postgresql://postgres:postgres@postgis:5432/geoapi_db"
-
 METADATA = {
     'version': '0.2.0',
     'id': 'Distances',
@@ -84,6 +82,13 @@ class Distances(BaseProcessor):
         self.secret_token = os.environ.get('INT_API_TOKEN', 'token')
         self.data_base_dir = '/pygeoapi/data'
         self.html_out = '/pygeoapi/data/html'
+        self.db_config = {
+            "dbname": os.getenv("DATABASE_NAME"),
+            "user": os.getenv("DATABASE_USER"),
+            "password": os.getenv("DATABASE_PASSWORD"),
+            "host": os.getenv("DATABASE_HOST"),
+            "port": os.getenv("DATABASE_PORT"),
+        }
 
 
     def execute(self, data):
@@ -113,6 +118,13 @@ class Distances(BaseProcessor):
         valid_device_ids = device_counts[device_counts >= 10].index
         atrai_bike_data = atrai_bike_data[atrai_bike_data['device_id'].isin(valid_device_ids)]
 
+        DB_URL = 'postgresql://%s:%s@%s:%s/%s' % (
+            self.db_config['user'],
+            self.db_config['password'],
+            self.db_config['host'],
+            self.db_config['port'],
+            self.db_config['dbname']
+        )
         engine = create_engine(DB_URL)
         road_network_query = "SELECT * FROM bike_road_network"
         edges_filtered = gpd.read_postgis(road_network_query, engine, geom_col='geometry')
