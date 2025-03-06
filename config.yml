@@ -125,5 +125,5 @@ resources:
                   user: ${DATABASE_USER}
                   password: ${DATABASE_PASSWORD}
               table: road_roughness
-              geom_field: geom
+              geom_field: geometry
               id_field: id

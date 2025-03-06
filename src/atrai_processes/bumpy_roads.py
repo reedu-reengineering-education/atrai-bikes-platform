@@ -5,10 +5,15 @@ from pygeoapi.process.base import BaseProcessor, ProcessorExecuteError
 import pandas as pd
 import folium
 
+import geopandas as gpd
+
 from .html_helper import legend_html_bumpy_roads
 from .useful_functs import filter_bike_data_location
 
 import psycopg2
+
+from sqlalchemy import create_engine
+
 
 
 LOGGER = logging.getLogger(__name__)
@@ -115,32 +120,38 @@ class BumpyRoads(BaseProcessor):
             LOGGER.error("WRONG INTERNAL API TOKEN")
             raise ProcessorExecuteError("ACCESS DENIED wrong token")
 
-        # if self.boxid not in os.listdir(self.data_base_dir):
-        #     LOGGER.info(f'download data for {self.boxid}')
-        #     OSM = OpenSenseMap.OpenSenseMap()
-        #     OSM.add_box(self.boxid)
-        #     OSM.save_OSM()
+       
+        atrai_bike_data = gpd.read_postgis(
+            "SELECT * FROM osem_bike_data",
+            con="postgresql://{}:{}@{}:{}/{}".format(
+                self.db_config["user"],
+                self.db_config["password"],
+                self.db_config["host"],
+                self.db_config["port"],
+                self.db_config["dbname"],
+            ),
+            geom_col="geometry",
+        )
 
-        # script
-        atrai_bike_data = pd.read_csv("/pygeoapi/combined_data.csv")
-        device_counts = atrai_bike_data.groupby("device_id").size()
-        valid_device_ids = device_counts[device_counts >= 10].index
-        atrai_bike_data = atrai_bike_data[
-            atrai_bike_data["device_id"].isin(valid_device_ids)
-        ]
-        filtered_data_MS = filter_bike_data_location(atrai_bike_data)
+        # device_counts = atrai_bike_data.groupby("device_id").size()
+        # valid_device_ids = device_counts[device_counts >= 10].index
+        # atrai_bike_data = atrai_bike_data[
+        #     atrai_bike_data["device_id"].isin(valid_device_ids)
+        # ]
+        # filtered_data_MS = filter_bike_data_location(atrai_bike_data)
 
-        road_roughness = filtered_data_MS[
-            [
-                "Surface Asphalt",
-                "Surface Sett",
-                "Surface Compacted",
-                "Surface Paving",
-                "lng",
-                "lat",
-            ]
-        ].copy()
-        road_roughness = road_roughness.dropna(
+        # road_roughness = filtered_data_MS[
+        #     [
+        #         "Surface Asphalt",
+        #         "Surface Sett",
+        #         "Surface Compacted",
+        #         "Surface Paving",
+        #         "lng",
+        #         "lat",
+        #     ]
+        # ].copy()
+        
+        road_roughness = atrai_bike_data.dropna(
             subset=[
                 "Surface Asphalt",
                 "Surface Sett",
@@ -154,44 +165,48 @@ class BumpyRoads(BaseProcessor):
             road_roughness["Roughness"] / road_roughness["Roughness"].max()
         ) * 100
         road_roughness_clean = road_roughness.dropna(
-            subset=["lat", "lng", "Roughness_Normalized"]
+            subset=["Roughness_Normalized"]
         )
 
-        conn = psycopg2.connect(**self.db_config)
-        cursor = conn.cursor()
+        # add an id column
+        road_roughness_clean["id"] = road_roughness_clean.index
 
-        try:
-            # Delete all rows from the table
-            cursor.execute("DELETE FROM road_roughness")
+        # remove the columns that are not needed
+        road_roughness_clean = road_roughness_clean.drop(
+            columns=[
+                "Temperature",
+                "Rel. Humidity",
+                "Finedust PM1",
+                "Finedust PM2.5",
+                "Finedust PM4",
+                "Finedust PM10",
+                "Overtaking Manoeuvre",
+                "Overtaking Distance",
+                "Surface Anomaly",
+                "Speed",
+            ]
+        )
 
-            insert_query = """
-            INSERT INTO road_roughness (id, geom, roughness)
-            VALUES (%s, ST_SetSRID(ST_MakePoint(%s, %s), 4326), %s)
-            """
+        DB_URL = 'postgresql://%s:%s@%s:%s/%s' % (
+            self.db_config['user'],
+            self.db_config['password'],
+            self.db_config['host'],
+            self.db_config['port'],
+            self.db_config['dbname']
+        )
+        engine = create_engine(DB_URL)
 
-            for index, row in road_roughness_clean.iterrows():
-                cursor.execute(
-                    insert_query, (index, row['lng'], row['lat'], row["Roughness_Normalized"])
-                )
+        road_roughness_clean.to_postgis(
+            "road_roughness",
+            engine,
+            if_exists="replace",
+            index=False,
+        )
 
-            # Commit the transaction
-            conn.commit()
-
-            # Return a success message
-            outputs = {
-                "id": "bumpy_roads",
-                "status": f"""Inserted {len(road_roughness_clean)} rows into the database""",
-            }
-
-        except Exception as e:
-            # Rollback in case of error
-            conn.rollback()
-            outputs = {"id": "bumpy_roads", "status": f"""Error: {e}"""}
-
-        finally:
-            # Close the database connection
-            cursor.close()
-            conn.close()
+        outputs = {
+            "id": "bumpy_roads",
+            "status": f"""Inserted {len(road_roughness_clean)} rows into the database""",
+        }
 
         # m_roughness = folium.Map(location=[51.9607, 7.6261], zoom_start=14)
 

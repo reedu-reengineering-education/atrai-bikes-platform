@@ -23,7 +23,6 @@ RUN pip install -r requirements.txt
 
 COPY src ./src
 COPY setup.py .
-COPY combined_data.csv .
 COPY entrypoint.sh .
 
 #RUN cp ids /osm_toolbox/ids
