@@ -94,6 +94,10 @@ resources:
         processor: 
             name: atrai_processes.RoadNetwork
         type: process
+    osem_data_ingestion:
+        processor:
+            name: atrai_processes.OsemDataIngestion
+        type: process
     road_roughness:  # Resource for your PostgreSQL table
         type: collection
         title: Road Roughness
