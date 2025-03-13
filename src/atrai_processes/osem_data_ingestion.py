@@ -3,8 +3,10 @@ import logging
 from opensensemaptoolbox import OpenSenseMap
 from pygeoapi.process.base import BaseProcessor, ProcessorExecuteError
 
-from sqlalchemy import create_engine
-import geopandas as gpd
+from sqlalchemy import text
+
+from config.db_config import DatabaseConfig
+
 
 
 LOGGER = logging.getLogger(__name__)
@@ -61,13 +63,7 @@ class OsemDataIngestion(BaseProcessor):
         super().__init__(processor_def, METADATA)
         self.secret_token = os.environ.get("INT_API_TOKEN", "token")
         self.data_base_dir = "/pygeoapi/data"
-        self.db_config = {
-            "dbname": os.getenv("DATABASE_NAME"),
-            "user": os.getenv("DATABASE_USER"),
-            "password": os.getenv("DATABASE_PASSWORD"),
-            "host": os.getenv("DATABASE_HOST"),
-            "port": os.getenv("DATABASE_PORT"),
-        }
+        self.db_config = DatabaseConfig()
 
     def execute(self, data):
         mimetype = "application/json"
@@ -87,18 +83,37 @@ class OsemDataIngestion(BaseProcessor):
         OSM.box_sensor_dict_by_tag(self.tag)
         gdfs = OSM.get_gdfs()
 
-        DB_URL = 'postgresql://%s:%s@%s:%s/%s' % (
-            self.db_config['user'],
-            self.db_config['password'],
-            self.db_config['host'],
-            self.db_config['port'],
-            self.db_config['dbname']
-        )
-        engine = create_engine(DB_URL)
+        engine = self.db_config.get_engine()
+
+        # delete existing data
+        with engine.begin() as conn:
+            conn.execute(text("DELETE FROM osem_bike_data"))
 
         for gdf in gdfs:
+            # get all columns in gdf
+            columns = gdf.columns.tolist()
+            # get all columns that are not in the table "osem_bike_data"
+            with engine.begin() as conn:
+                existing_columns = conn.execute(text("SELECT column_name FROM information_schema.columns WHERE table_name='osem_bike_data'")).fetchall()
+                existing_columns = [col[0] for col in existing_columns]
+                new_columns = [col for col in columns if col not in existing_columns]
+
+                print(f"existing columns: {existing_columns}")
+                print(f"new columns: {new_columns}")
+
+                # create new columns
+                for col in new_columns:
+                    conn.execute(text(f'ALTER TABLE osem_bike_data ADD COLUMN "{col}" DOUBLE PRECISION'))
+
+            # insert data
             gdf.to_postgis("osem_bike_data", engine, if_exists="append", index=False)
 
+        # create id column and set as primary key 
+        with engine.begin() as conn:
+            # remove existing id column
+            conn.execute(text("ALTER TABLE osem_bike_data DROP COLUMN IF EXISTS id"))
+            # add new id column
+            conn.execute(text("ALTER TABLE osem_bike_data ADD COLUMN id SERIAL PRIMARY KEY"))
 
         outputs = {"id": "osem_data_ingestion", "status": f'''ingested {len(gdfs)} boxes'''}
         return mimetype, outputs

@@ -98,6 +98,35 @@ resources:
         processor:
             name: atrai_processes.OsemDataIngestion
         type: process
+    osem_source_data: 
+        type: collection
+        title: openSenseMap Source Data
+        description: Data from openSenseMap
+        keywords:
+            - geospatial
+            - data
+        links:
+            - type: text/html
+              rel: canonical
+              title: data
+              href: http://example.org
+              hreflang: en-US
+        extents:
+            spatial:
+                bbox: [-180, -90, 180, 90]
+                crs: http://www.opengis.net/def/crs/OGC/1.3/CRS84
+        providers: 
+            - type: feature
+              name: PostgreSQL
+              data:
+                  host: ${DATABASE_HOST}
+                  port: ${DATABASE_PORT}
+                  dbname: ${DATABASE_NAME}
+                  user: ${DATABASE_USER}
+                  password: ${DATABASE_PASSWORD}
+              table: osem_bike_data
+              geom_field: geometry
+              id_field: id
     road_roughness:  # Resource for your PostgreSQL table
         type: collection
         title: Road Roughness

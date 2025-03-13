@@ -3,17 +3,10 @@ import logging
 from pygeoapi.process.base import BaseProcessor, ProcessorExecuteError
 
 import pandas as pd
-import folium
 
 import geopandas as gpd
 
-from .html_helper import legend_html_bumpy_roads
-from .useful_functs import filter_bike_data_location
-
-import psycopg2
-
-from sqlalchemy import create_engine
-
+from config.db_config import DatabaseConfig
 
 
 LOGGER = logging.getLogger(__name__)
@@ -97,13 +90,7 @@ class BumpyRoads(BaseProcessor):
         self.secret_token = os.environ.get("INT_API_TOKEN", "token")
         self.data_base_dir = "/pygeoapi/data"
         self.html_out = "/pygeoapi/data/html"
-        self.db_config = {
-            "dbname": os.getenv("DATABASE_NAME"),
-            "user": os.getenv("DATABASE_USER"),
-            "password": os.getenv("DATABASE_PASSWORD"),
-            "host": os.getenv("DATABASE_HOST"),
-            "port": os.getenv("DATABASE_PORT"),
-        }
+        self.db_config = DatabaseConfig()
 
     def execute(self, data):
         mimetype = "application/json"
@@ -120,16 +107,11 @@ class BumpyRoads(BaseProcessor):
             LOGGER.error("WRONG INTERNAL API TOKEN")
             raise ProcessorExecuteError("ACCESS DENIED wrong token")
 
+        engine = self.db_config.get_engine()
        
         atrai_bike_data = gpd.read_postgis(
             "SELECT * FROM osem_bike_data",
-            con="postgresql://{}:{}@{}:{}/{}".format(
-                self.db_config["user"],
-                self.db_config["password"],
-                self.db_config["host"],
-                self.db_config["port"],
-                self.db_config["dbname"],
-            ),
+            con=engine,
             geom_col="geometry",
         )
 
@@ -186,15 +168,6 @@ class BumpyRoads(BaseProcessor):
                 "Speed",
             ]
         )
-
-        DB_URL = 'postgresql://%s:%s@%s:%s/%s' % (
-            self.db_config['user'],
-            self.db_config['password'],
-            self.db_config['host'],
-            self.db_config['port'],
-            self.db_config['dbname']
-        )
-        engine = create_engine(DB_URL)
 
         road_roughness_clean.to_postgis(
             "road_roughness",

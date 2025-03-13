@@ -5,6 +5,9 @@ from pygeoapi.process.base import BaseProcessor, ProcessorExecuteError
 import osmnx as ox
 from sqlalchemy import create_engine
 
+from config.db_config import DatabaseConfig
+
+
 LOGGER = logging.getLogger(__name__)
 
 METADATA = {
@@ -59,13 +62,7 @@ class RoadNetwork(BaseProcessor):
         super().__init__(processor_def, METADATA)
         self.secret_token = os.environ.get("INT_API_TOKEN", "token")
         self.data_base_dir = "/pygeoapi/data"
-        self.db_config = {
-            "dbname": os.getenv("DATABASE_NAME"),
-            "user": os.getenv("DATABASE_USER"),
-            "password": os.getenv("DATABASE_PASSWORD"),
-            "host": os.getenv("DATABASE_HOST"),
-            "port": os.getenv("DATABASE_PORT"),
-        }
+        self.db_config = DatabaseConfig()
 
     def execute(self, data):
         mimetype = "application/json"
@@ -83,14 +80,8 @@ class RoadNetwork(BaseProcessor):
         road_network = ox.graph_from_place(self.location, network_type="bike")
         _, edges = ox.graph_to_gdfs(road_network)
         edges_filtered = edges[~edges['highway'].isin(['primary', 'secondary', 'tertiary'])]
-        DB_URL = 'postgresql://%s:%s@%s:%s/%s' % (
-            self.db_config['user'],
-            self.db_config['password'],
-            self.db_config['host'],
-            self.db_config['port'],
-            self.db_config['dbname']
-        )
-        engine = create_engine(DB_URL)
+
+        engine = self.db_config.get_engine()
         edges_filtered.to_postgis("bike_road_network", engine, if_exists="append", index=False)
 
         
