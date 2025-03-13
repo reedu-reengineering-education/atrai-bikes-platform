@@ -1,0 +1,34 @@
+services:
+  pygeoapi:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ./html:/pygeoapi/data/html
+    ports:
+      - 5000:80
+    environment:
+      - INT_API_TOKEN=${INT_API_TOKEN}
+      - PYGEOAPI_CONFIG=${PYGEOAPI_CONFIG}
+      - PYGEOAPI_SERV_CONFIG=${PYGEOAPI_SERV_CONFIG}
+      - DATABASE_HOST=${DATABASE_HOST}
+      - DATABASE_PORT=${DATABASE_PORT}
+      - DATABASE_NAME=${DATABASE_NAME}
+      - DATABASE_USER=${DATABASE_USER}
+      - DATABASE_PASSWORD=${DATABASE_PASSWORD}
+    depends_on:
+      postgis:
+        condition: service_healthy
+
+  postgis:
+    image: postgis/postgis:17-3.5
+    container_name: postgis_db
+    environment:
+      - POSTGRES_USER=${DATABASE_USER}
+      - POSTGRES_PASSWORD=${DATABASE_PASSWORD}
+      - POSTGRES_DB=${DATABASE_NAME}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
