@@ -28,8 +28,8 @@ services:
       - DATABASE_USER=${DATABASE_USER}
       - DATABASE_PASSWORD=${DATABASE_PASSWORD}
     depends_on:
-      postgis-seed:
-        condition: service_completed_successfully
+      postgis:
+        condition: service_healthy
 
   postgis:
     image: postgis/postgis:17-3.5
@@ -45,17 +45,6 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-
-  postgis-seed:
-    image: postgres:17-alpine
-    container_name: postgis_seed
-    volumes:
-      - ./seed:/seed
-    command: >
-      sh -c "PGPASSWORD=${DATABASE_PASSWORD} psql -h postgis -U ${DATABASE_USER} -d ${DATABASE_NAME} -f /seed/seed.sql"
-    depends_on:
-      postgis:
-        condition: service_healthy
 
 volumes:
   db_data: 
