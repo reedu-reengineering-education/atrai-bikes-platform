@@ -105,6 +105,8 @@ class OsemDataIngestion(BaseProcessor):
                 for col in new_columns:
                     conn.execute(text(f'ALTER TABLE osem_bike_data ADD COLUMN "{col}" DOUBLE PRECISION'))
 
+            # set crs
+            gdf = gdf.set_crs('epsg:4326', allow_override=True)
             # insert data
             gdf.to_postgis("osem_bike_data", engine, if_exists="append", index=False)
 
