@@ -17,6 +17,17 @@ services:
       - DATABASE_USER=${DATABASE_USER}
       - DATABASE_PASSWORD=${DATABASE_PASSWORD}
     depends_on:
+      postgis-seed:
+        condition: service_completed_successfully
+
+  postgis-seed:
+    image: postgres:17-alpine
+    container_name: postgis_seed
+    volumes:
+      - ./seed:/seed
+    command: >
+      sh -c "PGPASSWORD=${DATABASE_PASSWORD} psql -h postgis -U ${DATABASE_USER} -d ${DATABASE_NAME} -f /seed/seed.sql"
+    depends_on:
       postgis:
         condition: service_healthy
 
