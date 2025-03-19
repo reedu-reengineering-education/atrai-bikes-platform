@@ -1,1 +1,6 @@
 html
+
+# ignore everything except ipynb files
+notebooks/*
+!notebooks/*.ipynb
+!notebooks/*.md

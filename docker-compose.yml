@@ -43,3 +43,22 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+
+  jupyter:
+    image: quay.io/jupyter/minimal-notebook:latest
+    container_name: jupyter
+    ports:
+      - 8888:8888
+    user: root
+    environment:
+      JUPYTER_ENABLE_LAB: "yes"
+      JUPYTER_TOKEN: "docker"
+      JUPYTER_ALLOW_INSECURE_WRITES: "true"
+      NB_USER: "atrai" 
+      CHOWN_HOME: "yes" 
+      GRANT_SUDO: "yes" 
+    volumes:
+      - ./notebooks:/home/atrai
+    depends_on:
+      postgis-seed:
+        condition: service_completed_successfully
