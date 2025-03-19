@@ -3,13 +3,13 @@ import logging
 from pygeoapi.process.base import BaseProcessor, ProcessorExecuteError
 
 import osmnx as ox
-from sqlalchemy import create_engine
+from sqlalchemy import text
+
 
 from config.db_config import DatabaseConfig
 
 
 LOGGER = logging.getLogger(__name__)
-
 METADATA = {
     "version": "0.2.0",
     "id": "road_network",
@@ -61,7 +61,6 @@ class RoadNetwork(BaseProcessor):
 
         super().__init__(processor_def, METADATA)
         self.secret_token = os.environ.get("INT_API_TOKEN", "token")
-        self.data_base_dir = "/pygeoapi/data"
         self.db_config = DatabaseConfig()
 
     def execute(self, data):
@@ -76,21 +75,35 @@ class RoadNetwork(BaseProcessor):
         if self.token != self.secret_token:
             LOGGER.error("WRONG INTERNAL API TOKEN")
             raise ProcessorExecuteError("ACCESS DENIED wrong token")
+        
+        filters = [
+            '["highway"~"cycleway"]',
+            '["highway"~"path"]["bicycle"~"designated|yes"]',
+            '["highway"~"tertiary|residential|unclassified"]["bicycle"!~"use_sidepath"]["cycleway:both"!~"separate"]',
+            '["highway"~"secondary|service"]["bicycle"~"yes"]',
+            '["highway"~"secondary|service"]["cycleway"~"no|lane|track|opposite_lane|opposite_track|shared_lane|shared_track|share_busway"]',
+            '["highway"~"secondary|service"]["cycleway:both"~"no|lane"]',
+            '["bicycle_road"~"yes"]',
+        ]
 
-        road_network = ox.graph_from_place(self.location, network_type="bike")
+        # no footway, no highway primary
+        road_network = ox.graph_from_place(
+            self.location,
+            custom_filter=filters,
+            # network_type="bike",
+            # simplify=True,
+        )
         _, edges = ox.graph_to_gdfs(road_network)
-        edges_filtered = edges[~edges['highway'].isin(['primary', 'secondary', 'tertiary'])]
 
         engine = self.db_config.get_engine()
-        edges_filtered.to_postgis("bike_road_network", engine, if_exists="append", index=False)
 
-        
+        edges.to_postgis("bike_road_network", engine, if_exists="append", index=False)
+
         outputs = {
             "id": "road_network",
-            "status": f"""road network data imported""",
+            "status": f"""road network data imported. {edges.shape[0]} edges""",
         }
 
-      
         return mimetype, outputs
 
     def __repr__(self):
