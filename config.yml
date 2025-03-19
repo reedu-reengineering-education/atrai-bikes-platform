@@ -156,3 +156,32 @@ resources:
               table: road_roughness
               geom_field: geometry
               id_field: id
+    distances_flowmap:  # Resource for your PostgreSQL table
+        type: collection
+        title: Distances from overtaking manoeuvres
+        description: Distances from overtaking manoeuvres
+        keywords:
+            - geospatial
+            - data
+        links:
+            - type: text/html
+              rel: canonical
+              title: data
+              href: http://example.org
+              hreflang: en-US
+        extents:
+            spatial:
+                bbox: [-180, -90, 180, 90]
+                crs: http://www.opengis.net/def/crs/OGC/1.3/CRS84
+        providers: 
+            - type: feature
+              name: PostgreSQL
+              data:
+                  host: ${DATABASE_HOST}
+                  port: ${DATABASE_PORT}
+                  dbname: ${DATABASE_NAME}
+                  user: ${DATABASE_USER}
+                  password: ${DATABASE_PASSWORD}
+              table: distances_flowmap
+              geom_field: geometry
+              id_field: id
