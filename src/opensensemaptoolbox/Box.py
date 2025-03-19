@@ -17,9 +17,11 @@ logger = logging.getLogger('osm')
 
 
 class Box(APIressources):
-    def __init__(self, boxId: str):
+    def __init__(self, boxId: str, from_date=None, to_date=None):
         self.boxId = boxId
         self.sensors = []
+        self.from_date = from_date
+        self.to_date = to_date
         super().__init__(endpoints = {'box': {
                                         'endpoint': f'/boxes/{self.boxId}',
                                         'ref': 'https://docs.opensensemap.org/#api-Boxes-getBox'},
@@ -31,15 +33,15 @@ class Box(APIressources):
         self.locations = self.get_box_locations()
         self.get_box_sensors()
         self.data = self.get_box_data()
-        self.a = 1
+
 
     def add_sensor(self, sensorId):
         if isinstance(sensorId, str):
-            sensor = Sensor(self.boxId, sensorId)
+            sensor = Sensor(self.boxId, sensorId, from_date=self.from_date, to_date=self.to_date)
             self.sensors.append(sensor)
         if isinstance(sensorId, list):
             if isinstance(sensorId[0], str):
-                self.sensors = [Sensor(self.boxId, sId) for sId in sensorId]
+                self.sensors = [Sensor(self.boxId, sId, from_date=self.from_date, to_date=self.to_date) for sId in sensorId]
             elif isinstance(sensorId[0], Sensor):
                 self.sensors = sensorId
         if isinstance(sensorId, Sensor):

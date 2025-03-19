@@ -30,11 +30,11 @@ class OpenSenseMap(APIressources):
         return data
 
 
-    def box_sensor_dict_by_tag(self, tag: str):
+    def box_sensor_dict_by_tag(self, tag: str, from_date=None, to_date=None):
         data = self.get_data(self.endpoint_merge('box_data_bytag'), params=dict(grouptag=tag), format='json')
         box_ids = set(sorted([item['_id'] for item in data]))
         for box_id in box_ids:
-            box = Box(box_id)
+            box = Box(box_id, from_date=from_date, to_date=to_date)
             box.data = box.get_box_data()
             self.add_box(box)
 
