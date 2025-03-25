@@ -3,8 +3,10 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      target: development
     volumes:
       - ./html:/pygeoapi/data/html
+      - ./config.yml:/pygeoapi/local.config.yml
     ports:
       - 5000:80
     environment:

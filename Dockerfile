@@ -1,4 +1,4 @@
-FROM geopython/pygeoapi:0.19.0
+FROM geopython/pygeoapi:0.19.0 AS base
 
 ENV PYGEOAPI_CONFIG=config.yml
 ENV WSGI_WORKER_TIMEOUT=289067349086745908673459
@@ -35,6 +35,10 @@ RUN pip install . \
 
 RUN chmod +x /pygeoapi/entrypoint.sh
 
-#RUN mkdir -p /pygeoapi/config
 
+FROM base AS development
 ENTRYPOINT ["/pygeoapi/entrypoint.sh", "run"]
+
+
+FROM base AS production
+ENTRYPOINT ["/pygeoapi/entrypoint.sh", "run", "production"]

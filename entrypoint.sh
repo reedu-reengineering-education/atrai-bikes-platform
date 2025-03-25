@@ -28,6 +28,9 @@ export PYTHONPATH="${PYGEOAPI_HOME}/src:${PYTHONPATH}"
 # What to invoke: default is to run gunicorn server
 entry_cmd=${1:-run}
 
+# Environment (default to development)
+ENVIRONMENT=${2:-development}
+
 # Shorthand
 function error() {
 	echo "ERROR: $*"
@@ -82,14 +85,27 @@ case ${entry_cmd} in
 		[[ "${SCRIPT_NAME}" = '/' ]] && export SCRIPT_NAME="" && echo "make SCRIPT_NAME empty from /"
 
 		echo "Start gunicorn name=${CONTAINER_NAME} on ${CONTAINER_HOST}:${CONTAINER_PORT} with ${WSGI_WORKERS} workers and SCRIPT_NAME=${SCRIPT_NAME}"
-		exec gunicorn --workers "${WSGI_WORKERS}" \
+
+		# Adjust behavior for production
+		if [[ "${ENVIRONMENT}" == "production" ]]; then
+			echo "Running in production mode"
+			exec gunicorn --workers "${WSGI_WORKERS}" \
+				--worker-class="${WSGI_WORKER_CLASS}" \
+				--timeout "${WSGI_WORKER_TIMEOUT}" \
+				--name="${CONTAINER_NAME}" \
+				--bind "${CONTAINER_HOST}:${CONTAINER_PORT}" \
+				pygeoapi.flask_app:APP
+		else
+			echo "Running in development mode"
+			exec gunicorn --workers "${WSGI_WORKERS}" \
 				--worker-class="${WSGI_WORKER_CLASS}" \
 				--timeout "${WSGI_WORKER_TIMEOUT}" \
 				--name="${CONTAINER_NAME}" \
 				--bind "${CONTAINER_HOST}:${CONTAINER_PORT}" \
 				--reload \
-    			--reload-extra-file "${PYGEOAPI_CONFIG}" \
+				--reload-extra-file "${PYGEOAPI_CONFIG}" \
 				pygeoapi.flask_app:APP
+		fi
 	  ;;
 	*)
 	  error "unknown command arg: must be run (default) or test"

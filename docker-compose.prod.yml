@@ -15,7 +15,7 @@ services:
       - ./html:/usr/share/caddy/html
 
   pygeoapi:
-    image: ghcr.io/reedu-reengineering-education/atrai-bikes-platform:pr-1
+    image: ghcr.io/reedu-reengineering-education/atrai-bikes-platform:main
     volumes:
       - ./html:/pygeoapi/data/html
     environment:
