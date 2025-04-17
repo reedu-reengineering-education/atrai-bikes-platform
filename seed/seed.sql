@@ -1,5 +1,5 @@
 CREATE TABLE IF NOT EXISTS road_roughness (id SERIAL PRIMARY KEY, geometry GEOMETRY(Point, 4326));
-CREATE TABLE IF NOT EXISTS osem_bike_data (id SERIAL PRIMARY KEY, geometry GEOMETRY(Point, 4326));
+--CREATE TABLE IF NOT EXISTS osem_bike_data (id SERIAL PRIMARY KEY, geometry GEOMETRY(Point, 4326));
 CREATE TABLE IF NOT EXISTS distances_flowmap (
     id SERIAL PRIMARY KEY,
     "Average Overtaking Distance" FLOAT,
