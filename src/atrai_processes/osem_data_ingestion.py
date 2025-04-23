@@ -15,7 +15,6 @@ from config.db_config import DatabaseConfig
 import datetime as dt
 
 
-
 LOGGER = logging.getLogger(__name__)
 
 METADATA = {
@@ -160,7 +159,7 @@ class OsemDataIngestion(BaseProcessor):
         OSM.save_OSM(mode='postgis', engine=engine)
         OSM.merged_gdf.to_postgis(f"""merged_by_tag_{self.tag}""", engine, if_exists="replace", index=True) #TODO maybe this could also be a processvar
 
-        msg = "successful"
+        msg = {'state' : "successful"}
         self.update_config()
 
         return mimetype, msg
