@@ -54,6 +54,146 @@ resources:
     processor:
       name: atrai_processes.Distances
     type: process
+  osem_bike_data:
+    description: 'openSenseMap bike data'
+    extents:
+      spatial:
+        bbox:
+        - -180
+        - -90
+        - 180
+        - 90
+        crs: http://www.opengis.net/def/crs/EPSG/0/4326
+    keywords:
+    - country
+    providers:
+    - data:
+        dbname: geoapi_db
+        host: postgis
+        password: postgres
+        port: '5432'
+        search_path:
+        - public
+        user: postgres
+      geom_field: geometry
+      id_field: id
+      name: PostgreSQL
+      table: osem_bike_data
+      type: feature
+    title: osem_bike_data
+    type: collection
+  road_roughness:
+    description: 'Road roughness data'
+    extents:
+      spatial:
+        bbox:
+        - -180
+        - -90
+        - 180
+        - 90
+        crs: http://www.opengis.net/def/crs/EPSG/0/4326
+    keywords:
+    - country
+    providers:
+    - data:
+        dbname: geoapi_db
+        host: postgis
+        password: postgres
+        port: '5432'
+        search_path:
+        - public
+        user: postgres
+      geom_field: geometry
+      id_field: id
+      name: PostgreSQL
+      table: road_roughness
+      type: feature
+    title: road_roughness
+    type: collection
+  osem_bike_data:
+    description: 'openSenseMap bike data'
+    extents:
+      spatial:
+        bbox:
+        - -180
+        - -90
+        - 180
+        - 90
+        crs: http://www.opengis.net/def/crs/EPSG/0/4326
+    keywords:
+    - country
+    providers:
+    - data:
+        dbname: geoapi_db
+        host: postgis
+        password: postgres
+        port: '5432'
+        search_path:
+        - public
+        user: postgres
+      geom_field: geometry
+      id_field: id
+      name: PostgreSQL
+      table: osem_bike_data
+      type: feature
+    title: osem_bike_data
+    type: collection
+  bike_road_network:
+    description: 'Bike road network data'
+    extents:
+      spatial:
+        bbox:
+        - -180
+        - -90
+        - 180
+        - 90
+        crs: http://www.opengis.net/def/crs/EPSG/0/4326
+    keywords:
+    - country
+    providers:
+    - data:
+        dbname: geoapi_db
+        host: postgis
+        password: postgres
+        port: '5432'
+        search_path:
+        - public
+        user: postgres
+      geom_field: geometry
+      id_field: osmid
+      name: PostgreSQL
+      table: bike_road_network
+      type: feature
+    title: bike_road_network
+    type: collection
+  distances_flowmap:
+    description: 'Distances flowmap data'
+    extents:
+      spatial:
+        bbox:
+        - -180
+        - -90
+        - 180
+        - 90
+        crs: http://www.opengis.net/def/crs/EPSG/0/4326
+    keywords:
+    - country
+    providers:
+    - data:
+        dbname: geoapi_db
+        host: postgis
+        password: postgres
+        port: '5432'
+        search_path:
+        - public
+        user: postgres
+      geom_field: geometry
+      id_field: id
+      name: PostgreSQL
+      table: distances_flowmap
+      type: feature
+    title: distances_flowmap
+    type: collection
   osem_data_ingestion:
     processor:
       name: atrai_processes.OsemDataIngestion

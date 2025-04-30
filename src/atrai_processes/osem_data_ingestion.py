@@ -85,43 +85,43 @@ class OsemDataIngestion(BaseProcessor):
         LOGGER.debug("updated config")
 
 
-    def update_config(self):
-        # THIS MUST BE THE SAME IN ALL PROCESSES UPDATING THE SERV CONFIG
-        lock = FileLock(f"{self.config_file}.lock")
+    # def update_config(self):
+    #     # THIS MUST BE THE SAME IN ALL PROCESSES UPDATING THE SERV CONFIG
+    #     lock = FileLock(f"{self.config_file}.lock")
 
-        with lock:
+    #     with lock:
 
-            config= self.read_config()
-            config['resources'][f'merged_by_tag_{self.tag}'] = {
-                'type': 'collection',
-                'title': f'merged_by_tag_{self.tag}',
-                'description': f"data of tag: '{self.tag}'",
-                'keywords': ['country'],
-                'extents': {
-                    'spatial': {
-                        'bbox': [-180, -90, 180, 90],
-                        'crs': 'http://www.opengis.net/def/crs/EPSG/0/4326'
-                    },
-                },
-                'providers':
-                    [{
-                        'type': 'feature',
-                        'name': 'PostgreSQL',
-                        'data': {
-                            'host': self.db_cfg['host'],
-                            'port': self.db_cfg['port'],
-                            'dbname': self.db_cfg['dbname'],
-                            'user': self.db_cfg['user'],
-                            'password': self.db_cfg['password'],
-                            'search_path': ['public']
-                        },
-                        'id_field': 'index',
-                        'table': f"""merged_by_tag_{self.tag}""",
-                        'geom_field': 'geometry'
-                    }]
-            }
+    #         config= self.read_config()
+    #         config['resources'][f'merged_by_tag_{self.tag}'] = {
+    #             'type': 'collection',
+    #             'title': f'merged_by_tag_{self.tag}',
+    #             'description': f"data of tag: '{self.tag}'",
+    #             'keywords': ['country'],
+    #             'extents': {
+    #                 'spatial': {
+    #                     'bbox': [-180, -90, 180, 90],
+    #                     'crs': 'http://www.opengis.net/def/crs/EPSG/0/4326'
+    #                 },
+    #             },
+    #             'providers':
+    #                 [{
+    #                     'type': 'feature',
+    #                     'name': 'PostgreSQL',
+    #                     'data': {
+    #                         'host': self.db_cfg['host'],
+    #                         'port': self.db_cfg['port'],
+    #                         'dbname': self.db_cfg['dbname'],
+    #                         'user': self.db_cfg['user'],
+    #                         'password': self.db_cfg['password'],
+    #                         'search_path': ['public']
+    #                     },
+    #                     'id_field': 'index',
+    #                     'table': f"""merged_by_tag_{self.tag}""",
+    #                     'geom_field': 'geometry'
+    #                 }]
+    #         }
 
-            self.write_config(config)
+    #         self.write_config(config)
 
 
     def execute(self, data):
@@ -157,10 +157,11 @@ class OsemDataIngestion(BaseProcessor):
 
         OSM.merge_OSM()
         OSM.save_OSM(mode='postgis', engine=engine)
-        OSM.merged_gdf.to_postgis(f"""merged_by_tag_{self.tag}""", engine, if_exists="replace", index=True) #TODO maybe this could also be a processvar
+        OSM.merged_gdf.to_postgis(f"""osem_bike_data""", engine, if_exists="replace", index=True) #TODO maybe this could also be a processvar
 
-        msg = {'state' : "successful"}
-        self.update_config()
+        msg = {'state' : 'OK',
+               'message': f"data for tag '{self.tag}' ingested. Count of boxes: {len(boxes)}"}
+        # self.update_config()
 
         return mimetype, msg
 
