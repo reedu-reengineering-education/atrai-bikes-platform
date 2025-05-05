@@ -87,6 +87,8 @@ class Distances(BaseProcessor):
             con=engine,
             geom_col="geometry"
         )
+        if road_segments.crs is None:
+            road_segments.set_crs(epsg=4326, inplace=True)  # Replace 4326 with the correct CRS if needed
 
         if road_segments.empty:
             raise ProcessorExecuteError("No road network data found")
@@ -97,6 +99,12 @@ class Distances(BaseProcessor):
             con=engine,
             geom_col="geometry"
         )
+        if atrai_bike_data.crs is None:
+            atrai_bike_data.set_crs(epsg=4326, inplace=True)  # Replace 4326 with the correct CRS if needed
+
+        # Reproject atrai_bike_data to match road_segments CRS
+        if atrai_bike_data.crs != road_segments.crs:
+            atrai_bike_data = atrai_bike_data.to_crs(road_segments.crs)
 
         # Filtering & preprocessing
         filtered_data = atrai_bike_data.copy()
@@ -122,15 +130,7 @@ class Distances(BaseProcessor):
                 "Overtaking Manoeuvre",
                 "Normalized Overtaking Distance"
             ],
-            id_column="id",
-            extra_agg={"createdAt": "count"},
-            rename_columns={
-                "Overtaking Distance": "Average Overtaking Distance",
-                "Overtaking Manoeuvre": "Average Overtaking Manoeuvre",
-                "Normalized Overtaking Distance": "Average Normalized Overtaking Distance",
-                "distance_to_road": "Average Distance to Road",
-                "createdAt": "Number of Points"
-            }
+            id_column="id"
         )
 
         # Save to PostGIS
