@@ -7,6 +7,7 @@ services:
     volumes:
       - ./html:/pygeoapi/data/html
       - ./config.yml:/pygeoapi/local.config.yml
+      - ./src:/pygeoapi/src
     ports:
       - 5000:80
     environment:
