@@ -1,12 +1,24 @@
 import os
 import logging
+from config.db_config import DatabaseConfig
 from pygeoapi.process.base import BaseProcessor, ProcessorExecuteError
 
 import pandas as pd
 
-# from .useful_functs import filter_bike_data_location
+import geopandas as gpd
 
-import psycopg2
+from sqlalchemy import text
+
+from .statistic_utils import process_tours, tour_stats
+
+
+from shapely.geometry import box
+
+
+
+
+
+
 
 
 LOGGER = logging.getLogger(__name__)
@@ -76,6 +88,7 @@ class Statistics(BaseProcessor):
 
         self.token = data.get("token")
         self.tag = data.get("tag")
+        self.db_config = DatabaseConfig()
 
         if self.token is None:
             raise ProcessorExecuteError("Identify yourself with valid token!")
@@ -83,54 +96,80 @@ class Statistics(BaseProcessor):
         if self.token != self.secret_token:
             LOGGER.error("WRONG INTERNAL API TOKEN")
             raise ProcessorExecuteError("ACCESS DENIED wrong token")
+        
+        engine = self.db_config.get_engine()
 
-        # script
-        atrai_bike_data = pd.read_csv("/pygeoapi/combined_data.csv")
+        if self.tag is None:
+            raise ProcessorExecuteError("Cannot process without a tag")
 
-        filtered_devices_by_tag = atrai_bike_data[atrai_bike_data["tag"] == self.tag]
-        device_counts = filtered_devices_by_tag.groupby("device_id").size()
+        # Step 1: Load raw bike data
+        query = text("SELECT * FROM osem_bike_data WHERE tags LIKE :tag")
+        atrai_bike_data = gpd.read_postgis(
+            query,
+            params={"tag": f"%{self.tag}%"},
+            con=engine,
+            geom_col="geometry",
+        )
+        
+        if len(atrai_bike_data) == 0:
+            raise ProcessorExecuteError("No data found for the given tag")
+        
+        # Step 2: Process tours
+        tours = process_tours(atrai_bike_data, intervall=15)
+        stats = tour_stats(tours)
+
+         # Step 3: Calculate bbox for the filtered data
+        bbox = atrai_bike_data.total_bounds
+        LOGGER.info(f"Bounding box for tag '{self.tag}': {bbox}")
+
+        # Step 4: Create GeoDataFrame containing one row with the bounding box and all the statistics
+        bbox_gdf = gpd.GeoDataFrame(
+            {
+                "tag": [self.tag],
+                "statistics": [stats],
+                # add stats to the GeoDataFrame, like with the spread operator in js
+                # **{f"{k}": [v] for k, v in stats.items()},
+                "updatedAt": [pd.Timestamp.now()],
+            },
+            geometry=[box(*bbox)],
+            crs="EPSG:4326",
+        )
+
+        LOGGER.info(bbox_gdf.head())
+    
+        # Step 5: Upsert this data into the database, overwrite if exists (by tag). the tag is the primary key
+        with engine.begin() as conn:
+            # Check if the table exists
+            if not engine.dialect.has_table(conn, "statistics"):
+                # Create the table if it doesn't exist
+                bbox_gdf.to_postgis(
+                    name="statistics",
+                    con=conn,
+                    if_exists="replace",
+                    index=False,
+                    dtype={"geometry": "geometry(Polygon, 4326)"},
+                )
+            else:
+                # Upsert the data: delete the existing row with the same tag and insert the new one
+                conn.execute(
+                    text("DELETE FROM statistics WHERE tag = :tag"),
+                    {"tag": self.tag},
+                )
+                bbox_gdf.to_postgis(
+                    name="statistics",
+                    con=conn,
+                    if_exists="append",
+                    index=False,
+                    dtype={"geometry": "geometry(Polygon, 4326)"},
+                )
 
 
-        # valid_device_ids = device_counts[device_counts >= 10].index
-        # atrai_bike_data = atrai_bike_data[atrai_bike_data['device_id'].isin(valid_device_ids)]
-        # filtered_data_MS = filter_bike_data_location(atrai_bike_data)
-
-        conn = psycopg2.connect(**self.db_config)
-        cursor = conn.cursor()
-
-        try:
-            # Example: Insert data into a table
-            insert_query = """
-            INSERT INTO statistics (count)
-            VALUES (%s)
-            """
-
-            cursor.execute("DROP TABLE IF EXISTS statistics")
-            cursor.execute(
-                "CREATE TABLE statistics (count INT)"
-            )
-            cursor.execute(
-                insert_query, (len(device_counts),)
-            )
-
-            # Commit the transaction
-            conn.commit()
-
-            # Return a success message
-            outputs = {
-                "id": "statistics",
-                "status": f"""Calculated statistics for {len(device_counts)} devices""",
-            }
-
-        except Exception as e:
-            # Rollback in case of error
-            conn.rollback()
-            outputs = {"id": "statistics", "status": f"""Error: {e}"""}
-
-        finally:
-            # Close the database connection
-            cursor.close()
-            conn.close()
+        outputs = {
+            "id": self.tag,
+            "status": "success",
+            "message": f"Calculated statistics for tag '{self.tag}'",
+            "statistics": stats
+        }
 
         return mimetype, outputs
 

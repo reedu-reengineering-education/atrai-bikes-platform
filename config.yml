@@ -38,6 +38,7 @@ metadata:
     name: atrai bikes project
     url: https://atrai.bike
 resources:
+  # PROCESSES
   bumpy-roads:
     processor:
       name: atrai_processes.BumpyRoads
@@ -54,6 +55,31 @@ resources:
     processor:
       name: atrai_processes.Distances
     type: process
+  osem_data_ingestion:
+    processor:
+      name: atrai_processes.OsemDataIngestion
+    type: process
+  pm-analysis:
+    processor:
+      name: atrai_processes.PMAnalysis
+    type: process
+  road_network:
+    processor:
+      name: atrai_processes.RoadNetwork
+    type: process
+  speed-traffic-flow:
+    processor:
+      name: atrai_processes.SpeedTrafficFlow
+    type: process
+  temperature:
+    processor:
+      name: atrai_processes.Temperature
+    type: process
+  statistics:
+    processor:
+      name: atrai_processes.Statistics
+    type: process
+  # COLLECTIONS
   osem_bike_data:
     description: "openSenseMap bike data"
     extents:
@@ -158,26 +184,33 @@ resources:
         type: feature
     title: distances_flowmap
     type: collection
-  osem_data_ingestion:
-    processor:
-      name: atrai_processes.OsemDataIngestion
-    type: process
-  pm-analysis:
-    processor:
-      name: atrai_processes.PMAnalysis
-    type: process
-  road_network:
-    processor:
-      name: atrai_processes.RoadNetwork
-    type: process
-  speed-traffic-flow:
-    processor:
-      name: atrai_processes.SpeedTrafficFlow
-    type: process
-  temperature:
-    processor:
-      name: atrai_processes.Temperature
-    type: process
+  statistics_flowmap:
+    description: "Statistics data"
+    extents:
+      spatial:
+        bbox:
+          - -180
+          - -90
+          - 180
+          - 90
+        crs: http://www.opengis.net/def/crs/EPSG/0/4326
+    keywords:
+      - country
+    providers:
+      - data:
+          host: ${DATABASE_HOST}
+          port: ${DATABASE_PORT}
+          dbname: ${DATABASE_NAME}
+          user: ${DATABASE_USER}
+          password: ${DATABASE_PASSWORD}
+        geom_field: geometry
+        id_field: tag
+        name: PostgreSQL
+        table: statistics
+        type: feature
+    title: statistics
+    type: collection
+  
 server:
   bind:
     host: 0.0.0.0
