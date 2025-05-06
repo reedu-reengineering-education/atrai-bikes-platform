@@ -145,7 +145,10 @@ class OsemDataIngestion(BaseProcessor):
         OSM = osmtb.OpenSenseMap()
         boxes = OSM.box_sensor_dict_by_tag(self.tag)
         if len(boxes) < 1:
-            msg = "no boxes for this tag"
+            msg = {
+                'state': 'ERROR',
+                'message': f"no boxes found for tag '{self.tag}'"
+            }
             return mimetype, msg
         boxIds = [box['boxId'] for box in boxes]
         OSM.add_box(boxIds)
