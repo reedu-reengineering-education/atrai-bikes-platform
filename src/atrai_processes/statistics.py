@@ -12,14 +12,6 @@ from sqlalchemy import text
 from .statistic_utils import process_tours, tour_stats
 
 
-from shapely.geometry import box
-
-
-
-
-
-
-
 
 LOGGER = logging.getLogger(__name__)
 
@@ -118,9 +110,8 @@ class Statistics(BaseProcessor):
         tours = process_tours(atrai_bike_data, intervall=15)
         stats = tour_stats(tours)
 
-         # Step 3: Calculate bbox for the filtered data
-        bbox = atrai_bike_data.total_bounds
-        LOGGER.info(f"Bounding box for tag '{self.tag}': {bbox}")
+         # Step 3: Calculate convex hull 
+        convex_hull = atrai_bike_data.unary_union.convex_hull
 
         # Step 4: Create GeoDataFrame containing one row with the bounding box and all the statistics
         bbox_gdf = gpd.GeoDataFrame(
@@ -131,11 +122,9 @@ class Statistics(BaseProcessor):
                 # **{f"{k}": [v] for k, v in stats.items()},
                 "updatedAt": [pd.Timestamp.now()],
             },
-            geometry=[box(*bbox)],
+            geometry=[convex_hull],
             crs="EPSG:4326",
         )
-
-        LOGGER.info(bbox_gdf.head())
     
         # Step 5: Upsert this data into the database, overwrite if exists (by tag). the tag is the primary key
         with engine.begin() as conn:
