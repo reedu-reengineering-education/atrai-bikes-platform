@@ -9,3 +9,7 @@ CREATE TABLE IF NOT EXISTS distances_flowmap (
     "Number of Points" INTEGER,
     geometry GEOMETRY(LineString, 4326)
 );
+CREATE TABLE IF NOT EXISTS statistics (
+    id SERIAL PRIMARY KEY,
+    geometry GEOMETRY(LineString, 4326)
+);
