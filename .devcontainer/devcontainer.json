@@ -35,7 +35,7 @@
 	// "shutdownAction": "none",
 
 	// Uncomment the next line to run commands after the container is created.
-	"postCreateCommand": "bash entrypoint.sh run"
+	// "postCreateCommand": "bash entrypoint.sh run"
 
 	// Configure tool-specific properties.
 	// "customizations": {},
