@@ -60,11 +60,11 @@ def calc_calories(avg_speed, time):
     hours = time / 3600
     kcal = (300 + 30 * (kmh - 15)) * hours
     kcal = np.where(kcal > 0, kcal, 0)
-    return kcal
+    return kcal.tolist() if isinstance(kcal, np.ndarray) else kcal
 
 
 def tour_stats(tours_gdf):
-    stats = {
+    latest_stats = {
         "trip_count": len(tours_gdf),
         "total_duration_s": tours_gdf["duration"].sum(),  # unit: seconds
         "average_duration_s": tours_gdf["duration"].mean(),
@@ -74,8 +74,32 @@ def tour_stats(tours_gdf):
         "average_distance_m": tours_gdf["distance"].mean(),
         "max_distance_m": tours_gdf["distance"].max(),
         "min_distance_m": tours_gdf["distance"].min(),
-        "average_speed_kmh": (tours_gdf["distance"] / tours_gdf["duration"]).mean() * 3.6, # unit: km/h
+        "average_speed_kmh": (tours_gdf["distance"] / tours_gdf["duration"]).mean() * 3.6,  # unit: km/h
         "total_kcal": tours_gdf["kcal"].sum(),
         "average_distance_per_trip_m": tours_gdf["distance"].mean(),  # unit: m
     }
-    return stats
+
+    latest_stats = {key: (value.isoformat() if isinstance(value, pd.Timestamp) else value) for key, value in latest_stats.items()}
+    weekly_stats = calculate_weekly_stats(tours_gdf)
+    weekly_stats["week"] = weekly_stats["week"].dt.to_pydatetime().astype(str)
+
+    return {"latest_stats": latest_stats, "weekly_stats": weekly_stats.to_dict(orient="records")}
+
+
+def calculate_weekly_stats(tours_gdf):
+    tours_gdf["week"] = tours_gdf["start_time"].dt.to_period("W").apply(lambda r: r.start_time)
+    weekly_stats = tours_gdf.groupby("week").agg(
+        trip_count=("duration", "count"),
+        total_duration_s=("duration", "sum"),
+        average_duration_s=("duration", "mean"),
+        max_duration_s=("duration", "max"),
+        min_duration_s=("duration", "min"),
+        total_distance_m=("distance", "sum"),
+        average_distance_m=("distance", "mean"),
+        max_distance_m=("distance", "max"),
+        min_distance_m=("distance", "min"),
+        average_speed_kmh=("distance", lambda x: (x / tours_gdf.loc[x.index, "duration"]).mean() * 3.6),
+        total_kcal=("kcal", "sum"),
+    ).reset_index()
+
+    return weekly_stats
