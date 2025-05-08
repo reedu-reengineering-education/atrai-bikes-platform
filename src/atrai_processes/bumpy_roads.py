@@ -1,5 +1,6 @@
 import os
 import logging
+from .map_points_to_road_network import map_points_to_road_segments
 from pygeoapi.process.base import BaseProcessor, ProcessorExecuteError
 
 import pandas as pd
@@ -108,31 +109,19 @@ class BumpyRoads(BaseProcessor):
             raise ProcessorExecuteError("ACCESS DENIED wrong token")
 
         engine = self.db_config.get_engine()
-       
+
+        road_network_query = "SELECT * FROM bike_road_network"
+        road_segments = gpd.read_postgis(road_network_query, engine, geom_col="geometry")
+        if len(road_segments) == 0:
+            raise ProcessorExecuteError("No road network data found")
+
+        # Step 2: Load raw bike data
         atrai_bike_data = gpd.read_postgis(
             "SELECT * FROM osem_bike_data",
             con=engine,
             geom_col="geometry",
         )
 
-        # device_counts = atrai_bike_data.groupby("device_id").size()
-        # valid_device_ids = device_counts[device_counts >= 10].index
-        # atrai_bike_data = atrai_bike_data[
-        #     atrai_bike_data["device_id"].isin(valid_device_ids)
-        # ]
-        # filtered_data_MS = filter_bike_data_location(atrai_bike_data)
-
-        # road_roughness = filtered_data_MS[
-        #     [
-        #         "Surface Asphalt",
-        #         "Surface Sett",
-        #         "Surface Compacted",
-        #         "Surface Paving",
-        #         "lng",
-        #         "lat",
-        #     ]
-        # ].copy()
-        
         road_roughness = atrai_bike_data.dropna(
             subset=[
                 "Surface Asphalt",
@@ -146,14 +135,9 @@ class BumpyRoads(BaseProcessor):
         road_roughness["Roughness_Normalized"] = (
             road_roughness["Roughness"] / road_roughness["Roughness"].max()
         ) * 100
-        road_roughness_clean = road_roughness.dropna(
-            subset=["Roughness_Normalized"]
-        )
+        road_roughness_clean = road_roughness.dropna(subset=["Roughness_Normalized"])
 
-        # add an id column
         road_roughness_clean["id"] = road_roughness_clean.index
-
-        # remove the columns that are not needed
         road_roughness_clean = road_roughness_clean.drop(
             columns=[
                 "Temperature",
@@ -166,36 +150,29 @@ class BumpyRoads(BaseProcessor):
                 "Overtaking Distance",
                 "Surface Anomaly",
                 "Speed",
-            ]
+            ],
+            errors="ignore"  # if any column is missing
         )
 
-        road_roughness_clean.to_postgis(
+       # Map to road network and aggregate
+        roughness_flowmap = map_points_to_road_segments(
+            point_gdf=road_roughness_clean,
+            road_segments=road_segments,
+            numeric_columns=["Roughness", "Roughness_Normalized"],
+            id_column="id"
+        )
+
+        roughness_flowmap.to_postgis(
             "road_roughness",
             engine,
             if_exists="replace",
-            index=False,
+            index=False
         )
 
         outputs = {
-            "id": "bumpy_roads",
-            "status": f"""Inserted {len(road_roughness_clean)} rows into the database""",
+            "id": "road_roughness",
+            "status": f"Processed {len(roughness_flowmap)} road segments with roughness data"
         }
-
-        # m_roughness = folium.Map(location=[51.9607, 7.6261], zoom_start=14)
-
-        # for idx, row in road_roughness_clean.iterrows():
-        #     lat = row['lat']
-        #     lng = row['lng']
-        #     roughness = row['Roughness_Normalized']
-        #     color = get_color(roughness)
-        #     folium.CircleMarker([lat, lng], radius=5, color=color, fill=True, fill_color=color, fill_opacity=1).add_to(
-        #         m_roughness)
-
-        # legend = folium.Element(legend_html_bumpy_roads)
-        # m_roughness.get_root().html.add_child(legend)
-
-        # os.makedirs(self.html_out, exist_ok=True)
-        # m_roughness.save(os.path.join(self.html_out, "road_roughness_colored_map.html"))
 
         return mimetype, outputs
 

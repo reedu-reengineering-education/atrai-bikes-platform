@@ -13,6 +13,7 @@ osmnx
 psycopg2-binary
 pygeoapi
 python-dotenv
+pyyaml
 rasterio
 rioxarray
 s3fs
@@ -24,3 +25,4 @@ sqlalchemy
 tifffile
 xarray==2024.1.0
 zarr
+git+https://github.com/reedu-reengineering-education/OpenSenseMapToolbox.git#egg=opensensemaptoolbox

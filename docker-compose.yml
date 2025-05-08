@@ -7,6 +7,7 @@ services:
     volumes:
       - ./html:/pygeoapi/data/html
       - ./config.yml:/pygeoapi/local.config.yml
+      - ./src:/pygeoapi/src
     ports:
       - 5000:80
     environment:
@@ -34,6 +35,7 @@ services:
         condition: service_healthy
 
   postgis:
+    platform: linux/x86_64
     image: postgis/postgis:17-3.5
     container_name: postgis_db
     environment:
@@ -46,21 +48,21 @@ services:
       timeout: 5s
       retries: 5
 
-  jupyter:
-    image: quay.io/jupyter/minimal-notebook:latest
-    container_name: jupyter
-    ports:
-      - 8888:8888
-    user: root
-    environment:
-      JUPYTER_ENABLE_LAB: "yes"
-      JUPYTER_TOKEN: "docker"
-      JUPYTER_ALLOW_INSECURE_WRITES: "true"
-      NB_USER: "atrai" 
-      CHOWN_HOME: "yes" 
-      GRANT_SUDO: "yes" 
-    volumes:
-      - ./notebooks:/home/atrai
-    depends_on:
-      postgis-seed:
-        condition: service_completed_successfully
+  # jupyter:
+  #   image: quay.io/jupyter/minimal-notebook:latest
+  #   container_name: jupyter
+  #   ports:
+  #     - 8888:8888
+  #   user: root
+  #   environment:
+  #     JUPYTER_ENABLE_LAB: "yes"
+  #     JUPYTER_TOKEN: "docker"
+  #     JUPYTER_ALLOW_INSECURE_WRITES: "true"
+  #     NB_USER: "atrai" 
+  #     CHOWN_HOME: "yes" 
+  #     GRANT_SUDO: "yes" 
+  #   volumes:
+  #     - ./notebooks:/home/atrai
+  #   depends_on:
+  #     postgis-seed:
+  #       condition: service_completed_successfully

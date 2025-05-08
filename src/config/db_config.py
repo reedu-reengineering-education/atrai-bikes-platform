@@ -20,3 +20,6 @@ class DatabaseConfig:
             self.db_config['dbname']
         )
         return create_engine(db_url)
+
+    def get_db_config(self):
+        return self.db_config
