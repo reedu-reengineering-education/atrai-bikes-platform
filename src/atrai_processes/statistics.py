@@ -107,7 +107,7 @@ class Statistics(BaseProcessor):
             raise ProcessorExecuteError("No data found for the given tag")
         
         # Step 2: Process tours
-        tours = process_tours(atrai_bike_data, intervall=15)
+        tours = process_tours(atrai_bike_data, interval=12)
         stats = tour_stats(tours)
 
          # Step 3: Calculate convex hull 
