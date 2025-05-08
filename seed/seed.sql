@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS distances_flowmap (
     "Number of Points" INTEGER,
     geometry GEOMETRY(LineString, 4326)
 );
-CREATE TABLE IF NOT EXISTS bike_road_network (osmid SERIAL PRIMARY KEY, geometry GEOMETRY(Point, 4326));
+CREATE TABLE IF NOT EXISTS bike_road_network (osmid TEXT PRIMARY KEY, geometry GEOMETRY(LineString, 4326), name TEXT);
 CREATE TABLE IF NOT EXISTS statistics (
     tag TEXT PRIMARY KEY,
     geometry GEOMETRY(Polygon, 4326),

@@ -97,7 +97,10 @@ class RoadNetwork(BaseProcessor):
 
         engine = self.db_config.get_engine()
 
-        edges.to_postgis("bike_road_network", engine, if_exists="append", index=False)
+        # we are only interested in the osmid, name and geometry
+        edges = edges[["osmid", "name", "geometry"]]
+        
+        edges.to_postgis("bike_road_network", engine, if_exists="replace", index=False)
 
         outputs = {
             "id": "road_network",
