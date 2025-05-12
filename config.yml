@@ -219,7 +219,13 @@ server:
   encoding: utf-8
   gzip: false
   language: en-US
-  limit: 10
+  limits:
+    default_items: 20  # applies to vector data
+    max_items: 10000000000  # applies to vector data
+    # max_distance_x: 123  # applies to all datasets
+    # max_distance_y: 456 # applies to all datasets
+    # max_distance_units: m  # as per UCUM https://ucum.org/ucum#section-Tables-of-Terminal-Symbols
+    on_exceed: throttle  # one of error, throttle
   manager:
     connection: /tmp/pygeoapi-process-manager.db
     name: TinyDB
