@@ -8,6 +8,7 @@ from shapely.geometry import Point
 
 LOGGER = logging.getLogger(__name__)
 
+
 def filter_points(points, eps=10):
     """
     Filter points using DBSCAN clustering to remove clustered points.
@@ -18,7 +19,8 @@ def filter_points(points, eps=10):
         list: List of filtered points.
     """
     coords = np.array([(point.y, point.x) for point in points])
-    clustering = DBSCAN(eps=eps / 111139, min_samples=1).fit(coords)  # Convert meters to degrees
+    # Convert meters to degrees
+    clustering = DBSCAN(eps=eps / 111139, min_samples=1).fit(coords)
     unique_labels = set(clustering.labels_)
 
     filtered_points = []
@@ -47,7 +49,8 @@ def process_tours(data, interval=15):
         subset["createdAt"] = pd.to_datetime(subset["createdAt"])
         subset = subset.sort_values(by="createdAt")
         subset["tdiff"] = subset["createdAt"].diff()
-        subset["tour"] = (subset["tdiff"] > pd.Timedelta(minutes=interval)).cumsum()
+        subset["tour"] = (subset["tdiff"] > pd.Timedelta(
+            minutes=interval)).cumsum()
         subset.drop(columns=["tdiff"], inplace=True)
 
         tours = subset["tour"].unique()
@@ -55,13 +58,15 @@ def process_tours(data, interval=15):
             tour_data = subset[subset["tour"] == tour]
             ps = pd.Series([x for x in tour_data["geometry"]])
             valid_points = [p for p in ps if p is not None]
-            valid_points = filter_points(valid_points)  # Apply filtering to remove clustered points
+            # Apply filtering to remove clustered points
+            valid_points = filter_points(valid_points)
             if len(valid_points) > 1:
                 line = LineString(valid_points)
                 start_time = tour_data["createdAt"].iloc[0]
                 end_time = tour_data["createdAt"].iloc[-1]
                 duration = (end_time - start_time).total_seconds()
-                distance = line.length * 111139  # Convert degrees to meters (approximation for WGS 84).
+                # Convert degrees to meters (approximation for WGS 84).
+                distance = line.length * 111139
 
                 # Apply filters: at least 120 seconds, 500 meters, and 10 points
                 if duration >= 120 and distance >= 500 and len(valid_points) >= 10:
@@ -100,6 +105,42 @@ def calc_calories(duration_s):
     return calories_burned
 
 
+def calculate_periodic_stats(tours_gdf):
+    # Determine if data covers at least 2 unique weeks
+    weeks = tours_gdf["start_time"].dt.to_period("W").unique()
+    if len(weeks) < 2:
+        # Use daily stats
+        tours_gdf["period"] = tours_gdf["start_time"].dt.date
+    else:
+        # Use weekly stats
+        tours_gdf["period"] = tours_gdf["start_time"].dt.to_period(
+            "W").apply(lambda r: r.start_time)
+
+    periodic_stats = tours_gdf.groupby("period").agg(
+        trip_count=("duration", "count"),
+        total_duration_s=("duration", "sum"),
+        average_duration_s=("duration", "mean"),
+        max_duration_s=("duration", "max"),
+        min_duration_s=("duration", "min"),
+        total_distance_m=("distance", "sum"),
+        average_distance_m=("distance", "mean"),
+        max_distance_m=("distance", "max"),
+        min_distance_m=("distance", "min"),
+        average_speed_kmh=("distance", lambda x: (
+            x / tours_gdf.loc[x.index, "duration"]).mean() * 3.6),
+        total_kcal=("kcal", "sum"),
+    ).reset_index().rename(columns={"period": "period_start"})
+
+    # Convert period_start to string for serialization
+    periodic_stats["period_start"] = periodic_stats["period_start"].astype(str)
+
+    # Add a "week" column with the same value as "period_start"
+    # TODO: remove after renaming "week" to "periodic stat everywhere"
+    periodic_stats["week"] = periodic_stats["period_start"]
+
+    return periodic_stats
+
+
 def tour_stats(tours_gdf):
     latest_stats = {
         "trip_count": len(tours_gdf),
@@ -111,31 +152,18 @@ def tour_stats(tours_gdf):
         "average_distance_m": tours_gdf["distance"].mean(),
         "max_distance_m": tours_gdf["distance"].max(),
         "min_distance_m": tours_gdf["distance"].min(),
-        "average_speed_kmh": (tours_gdf["distance"] / tours_gdf["duration"]).mean() * 3.6,  # unit: km/h
+        # unit: km/h
+        "average_speed_kmh": (tours_gdf["distance"] / tours_gdf["duration"]).mean() * 3.6,
         "total_kcal": tours_gdf["kcal"].sum(),
     }
 
-    latest_stats = {key: (value.isoformat() if isinstance(value, pd.Timestamp) else value) for key, value in latest_stats.items()}
-    weekly_stats = calculate_weekly_stats(tours_gdf)
-    weekly_stats["week"] = weekly_stats["week"].dt.to_pydatetime().astype(str)
+    latest_stats = {key: (value.isoformat() if isinstance(
+        value, pd.Timestamp) else value) for key, value in latest_stats.items()}
+    periodic_stats = calculate_periodic_stats(tours_gdf)
 
-    return {"latest_stats": latest_stats, "weekly_stats": weekly_stats.to_dict(orient="records")}
-
-
-def calculate_weekly_stats(tours_gdf):
-    tours_gdf["week"] = tours_gdf["start_time"].dt.to_period("W").apply(lambda r: r.start_time)
-    weekly_stats = tours_gdf.groupby("week").agg(
-        trip_count=("duration", "count"),
-        total_duration_s=("duration", "sum"),
-        average_duration_s=("duration", "mean"),
-        max_duration_s=("duration", "max"),
-        min_duration_s=("duration", "min"),
-        total_distance_m=("distance", "sum"),
-        average_distance_m=("distance", "mean"),
-        max_distance_m=("distance", "max"),
-        min_distance_m=("distance", "min"),
-        average_speed_kmh=("distance", lambda x: (x / tours_gdf.loc[x.index, "duration"]).mean() * 3.6),
-        total_kcal=("kcal", "sum"),
-    ).reset_index()
-
-    return weekly_stats
+    return {
+        "latest_stats": latest_stats,
+        "periodic_stats": periodic_stats.to_dict(orient="records"),
+        # TODO: remove after renaming "week" to "periodic stat everywhere"
+        "weekly_stats": periodic_stats.to_dict(orient="records")
+    }
