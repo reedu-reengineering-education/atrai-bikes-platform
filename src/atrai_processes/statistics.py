@@ -94,73 +94,76 @@ class Statistics(BaseProcessor):
         if self.tag is None:
             raise ProcessorExecuteError("Cannot process without a tag")
 
-        # Step 1: Load raw bike data
-        query = text("SELECT * FROM osem_bike_data WHERE tags LIKE :tag")
-        atrai_bike_data = gpd.read_postgis(
-            query,
-            params={"tag": f"%{self.tag}%"},
-            con=engine,
-            geom_col="geometry",
-        )
+        try:
+            # Step 1: Load raw bike data
+            query = text("SELECT * FROM osem_bike_data WHERE tags LIKE :tag")
+            atrai_bike_data = gpd.read_postgis(
+                query,
+                params={"tag": f"%{self.tag}%"},
+                con=engine,
+                geom_col="geometry",
+            )
+            
+            if len(atrai_bike_data) == 0:
+                raise ProcessorExecuteError("No data found for the given tag")
+            
+            # Step 2: Process tours
+            tours = process_tours(atrai_bike_data, interval=12)
+            stats = tour_stats(tours)
+
+            # Step 3: Calculate convex hull 
+            convex_hull = atrai_bike_data.unary_union.convex_hull
+
+            # Step 4: Create GeoDataFrame containing one row with the bounding box and all the statistics
+            bbox_gdf = gpd.GeoDataFrame(
+                {
+                    "tag": [self.tag],
+                    "statistics": [stats],
+                    # add stats to the GeoDataFrame, like with the spread operator in js
+                    # **{f"{k}": [v] for k, v in stats.items()},
+                    "updatedAt": [pd.Timestamp.now()],
+                },
+                geometry=[convex_hull],
+                crs="EPSG:4326",
+            )
         
-        if len(atrai_bike_data) == 0:
-            raise ProcessorExecuteError("No data found for the given tag")
-        
-        # Step 2: Process tours
-        tours = process_tours(atrai_bike_data, interval=12)
-        stats = tour_stats(tours)
-
-         # Step 3: Calculate convex hull 
-        convex_hull = atrai_bike_data.unary_union.convex_hull
-
-        # Step 4: Create GeoDataFrame containing one row with the bounding box and all the statistics
-        bbox_gdf = gpd.GeoDataFrame(
-            {
-                "tag": [self.tag],
-                "statistics": [stats],
-                # add stats to the GeoDataFrame, like with the spread operator in js
-                # **{f"{k}": [v] for k, v in stats.items()},
-                "updatedAt": [pd.Timestamp.now()],
-            },
-            geometry=[convex_hull],
-            crs="EPSG:4326",
-        )
-    
-        # Step 5: Upsert this data into the database, overwrite if exists (by tag). the tag is the primary key
-        with engine.begin() as conn:
-            # Check if the table exists
-            if not engine.dialect.has_table(conn, "statistics"):
-                # Create the table if it doesn't exist
-                bbox_gdf.to_postgis(
-                    name="statistics",
-                    con=conn,
-                    if_exists="replace",
-                    index=False,
-                    dtype={"geometry": "geometry(Polygon, 4326)"},
-                )
-            else:
-                # Upsert the data: delete the existing row with the same tag and insert the new one
-                conn.execute(
-                    text("DELETE FROM statistics WHERE tag = :tag"),
-                    {"tag": self.tag},
-                )
-                bbox_gdf.to_postgis(
-                    name="statistics",
-                    con=conn,
-                    if_exists="append",
-                    index=False,
-                    dtype={"geometry": "geometry(Polygon, 4326)"},
-                )
+            # Step 5: Upsert this data into the database, overwrite if exists (by tag). the tag is the primary key
+            with engine.begin() as conn:
+                # Check if the table exists
+                if not engine.dialect.has_table(conn, "statistics"):
+                    # Create the table if it doesn't exist
+                    bbox_gdf.to_postgis(
+                        name="statistics",
+                        con=conn,
+                        if_exists="replace",
+                        index=False,
+                        dtype={"geometry": "geometry(Polygon, 4326)"},
+                    )
+                else:
+                    # Upsert the data: delete the existing row with the same tag and insert the new one
+                    conn.execute(
+                        text("DELETE FROM statistics WHERE tag = :tag"),
+                        {"tag": self.tag},
+                    )
+                    bbox_gdf.to_postgis(
+                        name="statistics",
+                        con=conn,
+                        if_exists="append",
+                        index=False,
+                        dtype={"geometry": "geometry(Polygon, 4326)"},
+                    )
 
 
-        outputs = {
-            "id": self.tag,
-            "status": "success",
-            "message": f"Calculated statistics for tag '{self.tag}'",
-            "statistics": stats
-        }
+            outputs = {
+                "id": self.tag,
+                "status": "success",
+                "message": f"Calculated statistics for tag '{self.tag}'",
+                "statistics": stats
+            }
 
-        return mimetype, outputs
+            return mimetype, outputs
+        finally:
+            engine.dispose()  # Ensure all connections are closed
 
     def __repr__(self):
         return f"<Statistics> {self.name}"

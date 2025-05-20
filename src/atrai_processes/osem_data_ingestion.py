@@ -137,36 +137,38 @@ class OsemDataIngestion(BaseProcessor):
             LOGGER.error("WRONG INTERNAL API TOKEN")
             raise ProcessorExecuteError("ACCESS DENIED wrong token")
 
-       
         engine = self.db_config.get_engine()
-        inspector = inspect(engine)
-        existing_tables = inspector.get_table_names(schme="public") # TODO make an env var
+        try:
+            inspector = inspect(engine)
+            existing_tables = inspector.get_table_names(schme="public") # TODO make an env var
 
-        OSM = osmtb.OpenSenseMap()
-        boxes = OSM.box_sensor_dict_by_tag(self.tag)
-        if len(boxes) < 1:
-            msg = {
-                'state': 'ERROR',
-                'message': f"no boxes found for tag '{self.tag}'"
-            }
+            OSM = osmtb.OpenSenseMap()
+            boxes = OSM.box_sensor_dict_by_tag(self.tag)
+            if len(boxes) < 1:
+                msg = {
+                    'state': 'ERROR',
+                    'message': f"no boxes found for tag '{self.tag}'"
+                }
+                return mimetype, msg
+            boxIds = [box['boxId'] for box in boxes]
+            OSM.add_box(boxIds)
+            if all(id in existing_tables for id in boxIds):
+                OSM.read_OSM(mode='postgis', engine=engine)
+                OSM.update_OSM(mode='postgis', engine=engine)
+            else:
+                OSM.fetch_box_data()
+
+            OSM.merge_OSM()
+            OSM.save_OSM(mode='postgis', engine=engine)
+            OSM.merged_gdf.to_postgis(f"""osem_bike_data""", engine, if_exists="replace", index=True) #TODO maybe this could also be a processvar
+
+            msg = {'state' : 'OK',
+                'message': f"data for tag '{self.tag}' ingested. Count of boxes: {len(boxes)}"}
+            # self.update_config()
+
             return mimetype, msg
-        boxIds = [box['boxId'] for box in boxes]
-        OSM.add_box(boxIds)
-        if all(id in existing_tables for id in boxIds):
-            OSM.read_OSM(mode='postgis', engine=engine)
-            OSM.update_OSM(mode='postgis', engine=engine)
-        else:
-            OSM.fetch_box_data()
-
-        OSM.merge_OSM()
-        OSM.save_OSM(mode='postgis', engine=engine)
-        OSM.merged_gdf.to_postgis(f"""osem_bike_data""", engine, if_exists="replace", index=True) #TODO maybe this could also be a processvar
-
-        msg = {'state' : 'OK',
-               'message': f"data for tag '{self.tag}' ingested. Count of boxes: {len(boxes)}"}
-        # self.update_config()
-
-        return mimetype, msg
+        finally:
+            engine.dispose()  # Ensure all connections are closed
 
 
     def __repr__(self):
