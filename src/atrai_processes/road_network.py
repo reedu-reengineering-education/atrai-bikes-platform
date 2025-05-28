@@ -78,12 +78,15 @@ class RoadNetwork(BaseProcessor):
         
         filters = [
             '["highway"~"cycleway"]',
-            '["highway"~"path"]["bicycle"~"designated|yes"]',
-            '["highway"~"tertiary|residential|unclassified"]["bicycle"!~"use_sidepath"]["cycleway:both"!~"separate"]',
+            '["highway"~"path|footway"]["bicycle"~"designated|yes"]',
+            '["highway"~"tertiary|unclassified"]["bicycle"!~"use_sidepath"]["cycleway:both"!~"separate"]',
             '["highway"~"secondary|service"]["bicycle"~"yes"]',
             '["highway"~"secondary|service"]["cycleway"~"no|lane|track|opposite_lane|opposite_track|shared_lane|shared_track|share_busway"]',
             '["highway"~"secondary|service"]["cycleway:both"~"no|lane"]',
             '["bicycle_road"~"yes"]',
+            '["highway"~"primary|secondary|service"]["cycleway:right"~"lane|share_busway"]',
+            '["highway"~"residential|tertiary"]',
+            '["oneway:bicycle"~"no"]',
         ]
 
         # no footway, no highway primary
@@ -97,7 +100,10 @@ class RoadNetwork(BaseProcessor):
 
         engine = self.db_config.get_engine()
 
-        edges.to_postgis("bike_road_network", engine, if_exists="append", index=False)
+        # we are only interested in the osmid, name and geometry
+        edges = edges[["osmid", "name", "geometry"]]
+        
+        edges.to_postgis("bike_road_network", engine, if_exists="replace", index=False)
 
         outputs = {
             "id": "road_network",

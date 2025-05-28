@@ -4,3 +4,5 @@ html
 notebooks/*
 !notebooks/*.ipynb
 !notebooks/*.md
+
+__pycache__
