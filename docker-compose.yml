@@ -45,6 +45,11 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    ports:
+      - 5432:5432
+    # volumes:
+    #   - postgis_data:/var/lib/postgresql/data 
+      # - ./postgres-config/pg_hba.conf:/var/lib/postgresql/data/pg_hba.conf
 
   jupyter:
     image: quay.io/jupyter/minimal-notebook:latest
@@ -64,3 +69,6 @@ services:
     depends_on:
       postgis-seed:
         condition: service_completed_successfully
+
+volumes: 
+  postgis_data:
