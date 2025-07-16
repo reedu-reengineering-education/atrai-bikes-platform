@@ -4,3 +4,6 @@ html
 notebooks/*
 !notebooks/*.ipynb
 !notebooks/*.md
+# ignore python compiled files 
+*.pyc
+__pycache__/
