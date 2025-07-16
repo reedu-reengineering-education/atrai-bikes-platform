@@ -7,3 +7,4 @@ from .dangerous_places import DangerousPlaces
 from .atrai_statistics import Statistics
 from .road_network import RoadNetwork
 from .osem_data_ingestion import OsemDataIngestion
+from .statistics import Statistics

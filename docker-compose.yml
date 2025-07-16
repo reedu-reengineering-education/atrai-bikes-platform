@@ -7,6 +7,7 @@ services:
     volumes:
       - ./html:/pygeoapi/data/html
       - ./config.yml:/pygeoapi/local.config.yml
+      - ./src:/pygeoapi/src
     ports:
       - 5000:80
     environment:
@@ -34,6 +35,7 @@ services:
         condition: service_healthy
 
   postgis:
+    platform: linux/x86_64
     image: postgis/postgis:17-3.5
     container_name: postgis_db
     environment:

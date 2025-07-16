@@ -1,5 +1,6 @@
 import os
 import logging
+from .map_points_to_road_network import map_points_to_road_segments
 from pygeoapi.process.base import BaseProcessor, ProcessorExecuteError
 
 import pandas as pd
@@ -70,9 +71,9 @@ class Distances(BaseProcessor):
         self.token = data.get("token")
 
         if self.boxid is None:
-            raise ProcessorExecuteError("Cannot process without a id")
+            raise ProcessorExecuteError("Cannot process without an id")
         if self.token is None:
-            raise ProcessorExecuteError("Identify yourself with valid token!")
+            raise ProcessorExecuteError("Identify yourself with a valid token!")
 
         if self.token != self.secret_token:
             LOGGER.error("WRONG INTERNAL API TOKEN")
@@ -80,115 +81,76 @@ class Distances(BaseProcessor):
 
         engine = self.db_config.get_engine()
 
-        road_network_query = "SELECT * FROM bike_road_network"
-        edges_filtered = gpd.read_postgis(
-            road_network_query, engine, geom_col="geometry"
-        )
+        try:
 
-        if len(edges_filtered) == 0:
-            raise ProcessorExecuteError("No road network data found")
+            # Load road network
+            road_segments = gpd.read_postgis(
+                "SELECT * FROM bike_road_network",
+                con=engine,
+                geom_col="geometry"
+            )
+            if road_segments.crs is None:
+                road_segments.set_crs(epsg=4326, inplace=True)  # Replace 4326 with the correct CRS if needed
 
-        atrai_bike_data = gpd.read_postgis(
-            "SELECT * FROM osem_bike_data",
-            con=engine,
-            geom_col="geometry",
-        )
+            if road_segments.empty:
+                raise ProcessorExecuteError("No road network data found")
 
-        # filtered_data_MS = filter_bike_data_location(atrai_bike_data)
-        filtered_data_MS = atrai_bike_data
+            # Load raw sensor data
+            atrai_bike_data = gpd.read_postgis(
+                "SELECT * FROM osem_bike_data",
+                con=engine,
+                geom_col="geometry"
+            )
+            if atrai_bike_data.crs is None:
+                atrai_bike_data.set_crs(epsg=4326, inplace=True)  # Replace 4326 with the correct CRS if needed
 
-        # filtered_data_MS = filtered_data_MS[['createdAt', 'lat', 'lng', 'device_id', 'Overtaking Distance', 'Overtaking Manoeuvre']]
-        filtered_data_MS["createdAt"] = pd.to_datetime(filtered_data_MS["createdAt"])
-        filtered_data_MS = filtered_data_MS.dropna(subset=["Overtaking Distance"])
-        filtered_data_MS = filtered_data_MS[
-            filtered_data_MS["Overtaking Manoeuvre"] > 0.05
-        ]
-        filtered_data_MS = filtered_data_MS[filtered_data_MS["Overtaking Distance"] > 0]
-        filtered_data_MS["Normalized Overtaking Distance"] = (
-            atrai_bike_data["Overtaking Distance"] / 200
-        ).clip(upper=1)
+            # Reproject atrai_bike_data to match road_segments CRS
+            if atrai_bike_data.crs != road_segments.crs:
+                atrai_bike_data = atrai_bike_data.to_crs(road_segments.crs)
 
-        print(filtered_data_MS.head())
-
-        edges_filtered = edges_filtered.reset_index(drop=True)
-
-        # filtered_data_MS is a gdf. join each point to the nearest road segment and calculate the average distance for each road segment
-        # Spatial join to find the nearest road segment for each point
-        filtered_data_MS = filtered_data_MS.set_geometry("geometry")
-        edges_filtered = edges_filtered.set_geometry("geometry")
-
-        # Ensure both GeoDataFrames use the same CRS
-        filtered_data_MS = filtered_data_MS.to_crs(edges_filtered.crs)
-
-        # Perform a spatial join to find the nearest road segment
-        filtered_data_with_roads = gpd.sjoin_nearest(
-            filtered_data_MS,
-            edges_filtered,
-            how="left",
-            distance_col="distance_to_road",
-        )
-
-        # print(filtered_data_with_roads.head())
-
-        # Calculate the average "Overtaking Distance" and "Overtaking Manoeuvre" for each road segment
-        distances_flowmap = filtered_data_with_roads.groupby("index_right").agg(
-            {
-                "Overtaking Distance": "mean",
-                "Overtaking Manoeuvre": "mean",
-                "Normalized Overtaking Distance": "mean",
-                "distance_to_road": "mean",
-                "createdAt": "count",
-            }
-        )
-
-        # Rename the columns
-        distances_flowmap = distances_flowmap.rename(
-            columns={
-                "Overtaking Distance": "Average Overtaking Distance",
-                "Overtaking Manoeuvre": "Average Overtaking Manoeuvre",
-                "Normalized Overtaking Distance": "Average Normalized Overtaking Distance",
-                "distance_to_road": "Average Distance to Road",
-                "createdAt": "Number of Points",
-            }
-        )
-
-        # Reset the index
-        # distances_flowmap = distances_flowmap.reset_index()
-
-        # Add the geometry of the road segment
-        distances_flowmap = distances_flowmap.merge(
-            edges_filtered, left_on="index_right", right_index=True
-        )
-
-        # Drop all columns except the ones we need, also the id column
-        distances_flowmap = distances_flowmap[
-            [
-                "Average Overtaking Distance",
-                "Average Overtaking Manoeuvre",
-                "Average Normalized Overtaking Distance",
-                "Average Distance to Road",
-                "Number of Points",
-                "geometry",
+            # Filtering & preprocessing
+            filtered_data = atrai_bike_data.copy()
+            filtered_data["createdAt"] = pd.to_datetime(filtered_data["createdAt"])
+            filtered_data = filtered_data.dropna(subset=["Overtaking Distance"])
+            filtered_data = filtered_data[
+                (filtered_data["Overtaking Manoeuvre"] > 0.05) &
+                (filtered_data["Overtaking Distance"] > 0)
             ]
-        ]
+            filtered_data["Normalized Overtaking Distance"] = (
+                filtered_data["Overtaking Distance"] / 200
+            ).clip(upper=1)
 
-        # Add the id column
-        distances_flowmap["id"] = distances_flowmap.index
+            # Add id for grouping
+            filtered_data["id"] = filtered_data.index
 
-        # Ensure distances_flowmap is a GeoDataFrame with a geometry column
-        distances_flowmap = gpd.GeoDataFrame(
-            distances_flowmap, geometry="geometry", crs=edges_filtered.crs
-        )
+            # Map points to roads and aggregate
+            overtaking_flowmap = map_points_to_road_segments(
+                point_gdf=filtered_data,
+                road_segments=road_segments,
+                numeric_columns=[
+                    "Overtaking Distance",
+                    "Overtaking Manoeuvre",
+                    "Normalized Overtaking Distance"
+                ],
+                id_column="id"
+            )
 
-        # Save the results to the database
-        distances_flowmap.to_postgis("distances_flowmap", engine, if_exists="replace")
+            # Save to PostGIS
+            overtaking_flowmap.to_postgis(
+                "distances_flowmap",
+                engine,
+                if_exists="replace",
+                index=False
+            )
 
-        outputs = {
-            "id": "distances_flowmap",
-            "status": f"""Processed {len(distances_flowmap)} road segments""",
-        }
+            outputs = {
+                "id": "distances_flowmap",
+                "status": f"Processed {len(overtaking_flowmap)} road segments with overtaking data"
+            }
 
-        return mimetype, outputs
+            return mimetype, outputs
+        finally:
+            engine.dispose()  # Ensure all connections are closed
 
     def __repr__(self):
         return f"<Distances> {self.name}"
