@@ -96,7 +96,7 @@ class Statistics(BaseProcessor):
 
         try:
             # Step 1: Load raw bike data
-            query = text("SELECT * FROM osem_bike_data WHERE tags LIKE :tag")
+            query = text("SELECT * FROM osem_bike_data WHERE grouptag LIKE :tag")
             atrai_bike_data = gpd.read_postgis(
                 query,
                 params={"tag": f"%{self.tag}%"},
@@ -142,7 +142,7 @@ class Statistics(BaseProcessor):
                 else:
                     # Upsert the data: delete the existing row with the same tag and insert the new one
                     conn.execute(
-                        text("DELETE FROM statistics WHERE tag = :tag"),
+                        text("DELETE FROM statistics WHERE grouptag = :tag"),
                         {"tag": self.tag},
                     )
                     bbox_gdf.to_postgis(
