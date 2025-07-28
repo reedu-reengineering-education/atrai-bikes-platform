@@ -4,7 +4,7 @@ from .distances_flowmap import Distances
 from .speed_traffic_flow import SpeedTrafficFlow
 from .pm_analysis import PMAnalysis
 from .dangerous_places import DangerousPlaces
-from .atrai_statistics import Statistics
+from .statistics import Statistics
 from .road_network import RoadNetwork
-from .osem_data_ingestion import OsemDataIngestion
+from .osem_data_ingestor import OsemDataIngestion
 from .statistics import Statistics
