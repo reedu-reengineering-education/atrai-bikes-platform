@@ -90,6 +90,11 @@ resources:
           - 180
           - 90
         crs: http://www.opengis.net/def/crs/EPSG/0/4326
+      temporal: 
+        interval:
+          - "1970-01-01T00:00:00Z" # interval start
+          - null
+        trs: http://www.opengis.net/def/uom/ISO-8601/0/Gregorian # temporal ref system
     keywords:
       - country
     providers:
@@ -104,6 +109,7 @@ resources:
         name: PostgreSQL
         table: osem_bike_data
         type: feature
+        time_field: "createdAt" # col from osem_data_ingestor
     title: osem_bike_data
     type: collection
   road_roughness:

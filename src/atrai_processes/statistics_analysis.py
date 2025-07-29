@@ -1,4 +1,19 @@
 import os
+import sys 
+
+# Get the directory of the current script for testing
+script_dir = os.path.dirname(__file__)
+
+# Go up one level from atrai_processes to src
+src_path = os.path.abspath(script_dir) 
+project_root = os.path.abspath(os.path.join(script_dir, '..', '..')) # Goes up from atrai_processes -> src -> project_root
+src_dir_path = os.path.join(project_root, 'src') # Points to 'project_root/src'
+
+# Add the 'src' directory to sys.path if it's not already there
+if src_dir_path not in sys.path:
+    sys.path.insert(0, src_dir_path)
+
+
 import logging
 from config.db_config import DatabaseConfig
 from pygeoapi.process.base import BaseProcessor, ProcessorExecuteError
@@ -9,7 +24,8 @@ import geopandas as gpd
 
 from sqlalchemy import text
 
-from .statistic_utils import process_tours, tour_stats
+# from .statistic_utils import process_tours, tour_stats
+from atrai_processes.statistic_utils import process_tours, tour_stats
 
 
 
@@ -137,12 +153,12 @@ class Statistics(BaseProcessor):
                         con=conn,
                         if_exists="replace",
                         index=False,
-                        dtype={"geometry": "geometry(Polygon, 4326)"},
+                        dtype={"geometry": "geometry(Polygon, 4326)", "tag": "TEXT"}, # Explicity define tag as TEXT
                     )
                 else:
                     # Upsert the data: delete the existing row with the same tag and insert the new one
                     conn.execute(
-                        text("DELETE FROM statistics WHERE grouptag = :tag"),
+                        text("DELETE FROM statistics WHERE tag = :tag"), # reference the "tag" column which is created, not grouptag
                         {"tag": self.tag},
                     )
                     bbox_gdf.to_postgis(
@@ -167,3 +183,35 @@ class Statistics(BaseProcessor):
 
     def __repr__(self):
         return f"<Statistics> {self.name}"
+    
+if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+    LOGGER.setLevel(logging.INFO) # Set logger level to INFO for detailed output
+
+    print(" Starting test of Atrai Statistics Process ")
+
+    # Create an instance of the processor
+    processor = Statistics(processor_def={"name": "statistics"})
+
+    # Define test input data
+    test_data = {
+        "token": os.environ.get("INT_API_TOKEN"),
+        "tag": "muenster" # use tag muenster for test bc data exists
+    }
+
+    if test_data["token"] is None:
+        LOGGER.error("INT_API_TOKEN environment variable not set. Please set it before running.")
+        exit(1)
+
+    try:
+        mimetype, outputs = processor.execute(test_data)
+        LOGGER.info(f"Process execution successful!")
+        LOGGER.info(f"Mimetype: {mimetype}")
+        LOGGER.info(f"Outputs: {outputs}")
+        print("\n Test finished! ")
+    except ProcessorExecuteError as e:
+        LOGGER.error(f"Processor execution error: {e}")
+        print("\n--- Direct test FAILED ---")
+    except Exception as e:
+        LOGGER.error(f"An unexpected error occurred during execution: {e}", exc_info=True)
+        print("\n Test FAILED ")
