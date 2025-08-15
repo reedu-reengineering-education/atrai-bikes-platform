@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS distances_flowmap (
 );
 CREATE TABLE IF NOT EXISTS bike_road_network (osmid TEXT PRIMARY KEY, geometry GEOMETRY(LineString, 4326), name TEXT);
 CREATE TABLE IF NOT EXISTS statistics (
-    tag TEXT PRIMARY KEY,
+    grouptag TEXT PRIMARY KEY,
     geometry GEOMETRY(Polygon, 4326),
     statistics TEXT,
     "updatedAt" TIMESTAMP
