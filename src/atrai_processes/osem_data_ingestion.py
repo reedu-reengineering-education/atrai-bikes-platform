@@ -73,6 +73,7 @@ class OsemDataIngestion(BaseProcessor):
         self.db_cfg = self.db_config.get_db_config()
         self.config_file = os.environ.get('PYGEOAPI_SERV_CONFIG', '/pygeoapi/local.config.yml')
         self.tag = None
+        self.boxes_metadata = pd.read_csv('/pygeoapi/src/boxes/metatable.csv')
 
     def read_config(self):
         with open(self.config_file, 'r') as file:
@@ -128,7 +129,6 @@ class OsemDataIngestion(BaseProcessor):
         mimetype = "application/json"
 
         self.token = data.get("token")
-        self.tag = data.get("tag") or "bike"
 
         if self.token is None:
             raise ProcessorExecuteError("Identify yourself with valid token!")
@@ -143,14 +143,7 @@ class OsemDataIngestion(BaseProcessor):
             existing_tables = inspector.get_table_names(schme="public") # TODO make an env var
 
             OSM = osmtb.OpenSenseMap()
-            boxes = OSM.box_sensor_dict_by_tag(self.tag)
-            if len(boxes) < 1:
-                msg = {
-                    'state': 'ERROR',
-                    'message': f"no boxes found for tag '{self.tag}'"
-                }
-                return mimetype, msg
-            boxIds = [box['boxId'] for box in boxes]
+            boxIds = [i for i in self.boxes_metadata['id']]
             OSM.add_box(boxIds)
             if all(id in existing_tables for id in boxIds):
                 OSM.read_OSM(mode='postgis', engine=engine)
@@ -160,10 +153,10 @@ class OsemDataIngestion(BaseProcessor):
 
             OSM.merge_OSM()
             OSM.save_OSM(mode='postgis', engine=engine)
-            OSM.merged_gdf.to_postgis(f"""osem_bike_data""", engine, if_exists="replace", index=True) #TODO maybe this could also be a processvar
+            OSM.merged_gdf.to_postgis(f"""osem_bike_data""", engine, if_exists="replace", index=True)
 
             msg = {'state' : 'OK',
-                'message': f"data for tag '{self.tag}' ingested. Count of boxes: {len(boxes)}"}
+                'message': f"ingested all data, Count of boxes: {len(boxIds)}"}
             # self.update_config()
 
             return mimetype, msg
