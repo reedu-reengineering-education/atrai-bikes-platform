@@ -8,3 +8,5 @@ from .statistics import Statistics
 from .road_network import RoadNetwork
 from .osem_data_ingestion import OsemDataIngestion
 from .statistics import Statistics
+#from .Atrai_processor import AtraiProcessor
+from .simple_process import SimpleProcess

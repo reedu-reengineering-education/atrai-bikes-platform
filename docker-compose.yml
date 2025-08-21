@@ -19,6 +19,9 @@ services:
       - DATABASE_NAME=${DATABASE_NAME}
       - DATABASE_USER=${DATABASE_USER}
       - DATABASE_PASSWORD=${DATABASE_PASSWORD}
+      - BASE_DATA_DIR=${BASE_DATA_DIR}
+      - HTML_OUT_DIR=${HTML_OUT_DIR}
+      - META_TABLE_PATH=${META_TABLE_PATH}
     depends_on:
       postgis-seed:
         condition: service_completed_successfully

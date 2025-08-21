@@ -25,4 +25,4 @@ sqlalchemy
 tifffile
 xarray==2024.1.0
 zarr
-git+https://github.com/reedu-reengineering-education/OpenSenseMapToolbox.git#egg=opensensemaptoolbox
+git+https://github.com/52North/OpenSenseMapToolbox.git#egg=opensensemaptoolbox
