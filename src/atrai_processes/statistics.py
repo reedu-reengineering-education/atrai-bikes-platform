@@ -2,6 +2,7 @@ import os
 import logging
 from config.db_config import DatabaseConfig
 from pygeoapi.process.base import BaseProcessor, ProcessorExecuteError
+from .atrai_processor import AtraiProcessor
 
 import pandas as pd
 
@@ -61,7 +62,7 @@ METADATA = {
 }
 
 
-class Statistics(BaseProcessor):
+class Statistics(AtraiProcessor):
     def __init__(self, processor_def):
 
         super().__init__(processor_def, METADATA)
@@ -78,8 +79,11 @@ class Statistics(BaseProcessor):
     def execute(self, data):
         mimetype = "application/json"
 
-        self.token = data.get("token")
-        self.tag = data.get("tag")
+        self.check_request_params(data)
+        atrai_bike_data = self.load_data()
+
+        # self.token = data.get("token")
+        # self.tag = data.get("tag")
         self.db_config = DatabaseConfig()
 
         if self.token is None:
@@ -91,22 +95,22 @@ class Statistics(BaseProcessor):
         
         engine = self.db_config.get_engine()
 
-        if self.tag is None:
-            raise ProcessorExecuteError("Cannot process without a tag")
+        # if self.tag is None:
+        #     raise ProcessorExecuteError("Cannot process without a tag")
 
         try:
             # Step 1: Load raw bike data
-            query = text("SELECT * FROM osem_bike_data WHERE tags LIKE :tag")
-            atrai_bike_data = gpd.read_postgis(
-                query,
-                params={"tag": f"%{self.tag}%"},
-                con=engine,
-                geom_col="geometry",
-            )
+            # query = text("SELECT * FROM osem_bike_data WHERE tags LIKE :tag")
+            # atrai_bike_data = gpd.read_postgis(
+            #     query,
+            #     params={"tag": f"%{self.tag}%"},
+            #     con=engine,
+            #     geom_col="geometry",
+            # )
             
             if len(atrai_bike_data) == 0:
                 raise ProcessorExecuteError("No data found for the given tag")
-            
+
             # Step 2: Process tours
             tours = process_tours(atrai_bike_data, interval=12)
             stats = tour_stats(tours)
@@ -117,7 +121,7 @@ class Statistics(BaseProcessor):
             # Step 4: Create GeoDataFrame containing one row with the bounding box and all the statistics
             bbox_gdf = gpd.GeoDataFrame(
                 {
-                    "tag": [self.tag],
+                    "tag": [self.campaign],
                     "statistics": [stats],
                     # add stats to the GeoDataFrame, like with the spread operator in js
                     # **{f"{k}": [v] for k, v in stats.items()},
@@ -143,7 +147,7 @@ class Statistics(BaseProcessor):
                     # Upsert the data: delete the existing row with the same tag and insert the new one
                     conn.execute(
                         text("DELETE FROM statistics WHERE tag = :tag"),
-                        {"tag": self.tag},
+                        {"tag": self.campaign},
                     )
                     bbox_gdf.to_postgis(
                         name="statistics",
@@ -155,9 +159,9 @@ class Statistics(BaseProcessor):
 
 
             outputs = {
-                "id": self.tag,
+                "campaign": self.campaign,
                 "status": "success",
-                "message": f"Calculated statistics for tag '{self.tag}'",
+                "message": f"Calculated statistics for campaign '{self.campaign}'",
                 "statistics": stats
             }
 
