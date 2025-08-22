@@ -3,6 +3,7 @@ import logging
 from pygeoapi.process.base import BaseProcessor, ProcessorExecuteError
 
 import osmnx as ox
+import networkx as nx
 from sqlalchemy import text
 
 
@@ -89,13 +90,18 @@ class RoadNetwork(BaseProcessor):
             '["oneway:bicycle"~"no"]',
         ]
 
-        # no footway, no highway primary
-        road_network = ox.graph_from_place(
-            self.location,
-            custom_filter=filters,
-            # network_type="bike",
-            # simplify=True,
-        )
+        road_network = nx.MultiDiGraph()
+
+        for place in self.location:
+            G_place = ox.graph_from_place(
+                place,
+                custom_filter=filters,
+                # network_type="bike",
+                # simplify=True,
+            )
+            road_network = nx.compose(road_network, G_place)
+
+
         _, edges = ox.graph_to_gdfs(road_network)
 
         engine = self.db_config.get_engine()
