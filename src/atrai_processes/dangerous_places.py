@@ -84,6 +84,8 @@ class DangerousPlaces(AtraiProcessor):
 
         self.check_request_params(data)
         atrai_bike_data = self.load_data()
+        atrai_bike_data['lng'] = atrai_bike_data['geometry'].x
+        atrai_bike_data['lat'] = atrai_bike_data['geometry'].y
 
         # self.boxid = data.get('id')
         # self.token = data.get('token')
@@ -107,13 +109,11 @@ class DangerousPlaces(AtraiProcessor):
         device_counts = atrai_bike_data.groupby('boxId').size()
         valid_device_ids = device_counts[device_counts >= 10].index
         atrai_bike_data = atrai_bike_data[atrai_bike_data['boxId'].isin(valid_device_ids)]
-        # filtered_data_MS = filter_bike_data_location(atrai_bike_data)
+        filtered_data_MS = filter_bike_data_location(atrai_bike_data)
 
-        atrai_bike_data['lng'] = atrai_bike_data['geometry'].x
-        atrai_bike_data['lat'] = atrai_bike_data['geometry'].y
 
-        # danger_data = filtered_data_MS[['createdAt', 'Overtaking Manoeuvre', 'Overtaking Distance', 'Standing', 'Rel. Humidity', 'Finedust PM1', 'Finedust PM2.5', 'Finedust PM4', 'Finedust PM10', 'geometry', 'device_id', 'lng', 'lat']]
-        danger_data = atrai_bike_data[['createdAt', 'Overtaking Manoeuvre', 'Overtaking Distance', 'Standing', 'Rel. Humidity', 'Finedust PM1', 'Finedust PM2.5', 'Finedust PM4', 'Finedust PM10', 'geometry', 'boxId', 'lng', 'lat']]
+        danger_data = filtered_data_MS[['createdAt', 'Overtaking Manoeuvre', 'Overtaking Distance', 'Standing', 'Rel. Humidity', 'Finedust PM1', 'Finedust PM2.5', 'Finedust PM4', 'Finedust PM10', 'geometry', 'boxId', 'lng', 'lat']]
+        # danger_data = atrai_bike_data[['createdAt', 'Overtaking Manoeuvre', 'Overtaking Distance', 'Standing', 'Rel. Humidity', 'Finedust PM1', 'Finedust PM2.5', 'Finedust PM4', 'Finedust PM10', 'geometry', 'boxId', 'lng', 'lat']]
 
 
         danger_zones = danger_data.copy()

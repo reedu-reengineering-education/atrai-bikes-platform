@@ -1,6 +1,8 @@
 import os
 import logging
 from pygeoapi.process.base import BaseProcessor, ProcessorExecuteError
+from .atrai_processor import AtraiProcessor
+
 
 import pandas as pd
 import folium
@@ -91,24 +93,29 @@ def filter_season_and_time(filtered_data, start_time, end_time, selected_season,
     
     return filtered_data[['lat', 'lng', 'Finedust PM2.5']].dropna(subset=['lat', 'lng', 'Finedust PM2.5'])
 
-class PMAnalysis(BaseProcessor):
+class PMAnalysis(AtraiProcessor):
     def __init__(self, processor_def):
 
         super().__init__(processor_def, METADATA)
-        self.secret_token = os.environ.get('INT_API_TOKEN', 'token')
-        self.data_base_dir = '/pygeoapi/data'
-        self.html_out = '/pygeoapi/data/html'
-        self.png_out = '/pygeoapi/data/png' 
+        # self.secret_token = os.environ.get('INT_API_TOKEN', 'token')
+        # self.data_base_dir = '/pygeoapi/data'
+        # self.html_out = '/pygeoapi/data/html'
+        self.png_out = '/pygeoapi/data/png'
 
 
     def execute(self, data):
         mimetype =  'application/json'
 
-        self.boxid = data.get('id')
-        self.token = data.get('token')
+        self.check_request_params(data)
+        atrai_bike_data = self.load_data()
+        atrai_bike_data['lng'] = atrai_bike_data['geometry'].x
+        atrai_bike_data['lat'] = atrai_bike_data['geometry'].y
 
-        if self.boxid is None:
-            raise ProcessorExecuteError('Cannot process without a id')
+        # self.boxid = data.get('id')
+        # self.token = data.get('token')
+
+        # if self.boxid is None:
+        #     raise ProcessorExecuteError('Cannot process without a id')
         if self.token is None:
             raise ProcessorExecuteError('Identify yourself with valid token!')
 
@@ -123,13 +130,13 @@ class PMAnalysis(BaseProcessor):
         #     OSM.save_OSM()
 
         #script
-        atrai_bike_data = pd.read_csv('/pygeoapi/combined_data.csv')
-        device_counts = atrai_bike_data.groupby('device_id').size()
+        # atrai_bike_data = pd.read_csv('/pygeoapi/combined_data.csv')
+        device_counts = atrai_bike_data.groupby('boxId').size()
         valid_device_ids = device_counts[device_counts >= 10].index
-        atrai_bike_data = atrai_bike_data[atrai_bike_data['device_id'].isin(valid_device_ids)]
+        atrai_bike_data = atrai_bike_data[atrai_bike_data['boxId'].isin(valid_device_ids)]
         filtered_data_MS = filter_bike_data_location(atrai_bike_data)
 
-        filtered_data_MS = filtered_data_MS[['createdAt', 'Rel. Humidity', 'Finedust PM1', 'Finedust PM2.5', 'Finedust PM4', 'Finedust PM10', 'geometry', 'device_id', 'lng', 'lat']]
+        filtered_data_MS = filtered_data_MS[['createdAt', 'Rel. Humidity', 'Finedust PM1', 'Finedust PM2.5', 'Finedust PM4', 'Finedust PM10', 'geometry', 'boxId', 'lng', 'lat']]
         filtered_data_MS = filtered_data_MS[(filtered_data_MS['Rel. Humidity'] <= 75) & (filtered_data_MS['Rel. Humidity'].notna())]
         
         pm_columns = ['Finedust PM1', 'Finedust PM2.5', 'Finedust PM4', 'Finedust PM10']
@@ -144,7 +151,7 @@ class PMAnalysis(BaseProcessor):
         plt.figure(figsize=(12, 10))
 
         plt.subplot(2, 2, 1) 
-        sns.boxplot(data=filtered_data_MS, x='device_id', y='Finedust PM1')
+        sns.boxplot(data=filtered_data_MS, x='boxId', y='Finedust PM1')
         plt.title('PM1 Concentration by Device ID, Münster')
         plt.xlabel('Devices')
         plt.ylabel('PM1 (µg/m³)')
@@ -152,7 +159,7 @@ class PMAnalysis(BaseProcessor):
         plt.ylim(0,80)
 
         plt.subplot(2, 2, 2)
-        sns.boxplot(data=filtered_data_MS, x='device_id', y='Finedust PM2.5')
+        sns.boxplot(data=filtered_data_MS, x='boxId', y='Finedust PM2.5')
         plt.title('PM2.5 Concentration by Device ID, Münster')
         plt.xlabel('Devices')
         plt.ylabel('PM2.5(µg/m³)')
@@ -160,7 +167,7 @@ class PMAnalysis(BaseProcessor):
         plt.ylim(0,80)
 
         plt.subplot(2, 2, 3)
-        sns.boxplot(data=filtered_data_MS, x='device_id', y='Finedust PM4')
+        sns.boxplot(data=filtered_data_MS, x='boxId', y='Finedust PM4')
         plt.title('PM4 Concentration by Device ID, Münster')
         plt.xlabel('Devices')
         plt.ylabel('PM4 (µg/m³)')
@@ -168,7 +175,7 @@ class PMAnalysis(BaseProcessor):
         plt.ylim(0,80)
 
         plt.subplot(2, 2, 4)
-        sns.boxplot(data=filtered_data_MS, x='device_id', y='Finedust PM10')
+        sns.boxplot(data=filtered_data_MS, x='boxId', y='Finedust PM10')
         plt.title('PM10 Concentration by Device ID, Münster')
         plt.xlabel('Devices')
         plt.ylabel('PM10 (µg/m³)')
