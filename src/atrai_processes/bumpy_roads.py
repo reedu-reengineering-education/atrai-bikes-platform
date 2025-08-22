@@ -2,6 +2,7 @@ import os
 import logging
 from .map_points_to_road_network import map_points_to_road_segments
 from pygeoapi.process.base import BaseProcessor, ProcessorExecuteError
+from .atrai_processor import AtraiProcessor
 
 import pandas as pd
 
@@ -84,23 +85,26 @@ def calculate_roughness(
     return score
 
 
-class BumpyRoads(BaseProcessor):
+class BumpyRoads(AtraiProcessor):
     def __init__(self, processor_def):
 
         super().__init__(processor_def, METADATA)
-        self.secret_token = os.environ.get("INT_API_TOKEN", "token")
-        self.data_base_dir = "/pygeoapi/data"
-        self.html_out = "/pygeoapi/data/html"
+        # self.secret_token = os.environ.get("INT_API_TOKEN", "token")
+        # self.data_base_dir = "/pygeoapi/data"
+        # self.html_out = "/pygeoapi/data/html"
         self.db_config = DatabaseConfig()
 
     def execute(self, data):
         mimetype = "application/json"
 
-        self.boxid = data.get("id")
+        self.check_request_params(data)
+        atrai_bike_data = self.load_data()
+
+        # self.boxid = data.get("id")
         self.token = data.get("token")
 
-        if self.boxid is None:
-            raise ProcessorExecuteError("Cannot process without a id")
+        # if self.boxid is None:
+        #     raise ProcessorExecuteError("Cannot process without a id")
         if self.token is None:
             raise ProcessorExecuteError("Identify yourself with valid token!")
 
@@ -116,11 +120,11 @@ class BumpyRoads(BaseProcessor):
             raise ProcessorExecuteError("No road network data found")
 
         # Step 2: Load raw bike data
-        atrai_bike_data = gpd.read_postgis(
-            "SELECT * FROM osem_bike_data",
-            con=engine,
-            geom_col="geometry",
-        )
+        # atrai_bike_data = gpd.read_postgis(
+        #     "SELECT * FROM osem_bike_data",
+        #     con=engine,
+        #     geom_col="geometry",
+        # )
 
         road_roughness = atrai_bike_data.dropna(
             subset=[
