@@ -52,6 +52,6 @@ def replace_outliers_with_nan_by_device(PM_data_no_outliers, column):
         group[column] = group[column].apply(lambda x: x if lower_bound <= x <= upper_bound else np.nan)
         return group
 
-    PM_data_no_outliers = PM_data_no_outliers.groupby('device_id', group_keys=False).apply(calculate_and_replace_outliers)
+    PM_data_no_outliers = PM_data_no_outliers.groupby('boxId', group_keys=False).apply(calculate_and_replace_outliers)
     
     return PM_data_no_outliers
