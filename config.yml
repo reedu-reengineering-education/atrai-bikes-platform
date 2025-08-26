@@ -79,6 +79,10 @@ resources:
     processor:
       name: atrai_processes.Statistics
     type: process
+  simple:
+    processor:
+      name: atrai_processes.SimpleProcess
+    type: process
   # COLLECTIONS
   osem_bike_data:
     description: "openSenseMap bike data"
@@ -100,7 +104,7 @@ resources:
           user: ${DATABASE_USER}
           password: ${DATABASE_PASSWORD}
         geom_field: geometry
-        id_field: id
+        id_field: index
         name: PostgreSQL
         table: osem_bike_data
         type: feature

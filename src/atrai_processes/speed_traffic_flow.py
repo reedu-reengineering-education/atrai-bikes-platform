@@ -1,6 +1,8 @@
 import os
 import logging
 from pygeoapi.process.base import BaseProcessor, ProcessorExecuteError
+from .atrai_processor import AtraiProcessor
+
 
 import pandas as pd
 import folium
@@ -95,12 +97,12 @@ def filter_start_end(group):
 
     return group
 
-class SpeedTrafficFlow(BaseProcessor):
+class SpeedTrafficFlow(AtraiProcessor):
     def __init__(self, processor_def):
         super().__init__(processor_def, METADATA)
-        self.secret_token = os.environ.get('INT_API_TOKEN', 'token')
-        self.data_base_dir = '/pygeoapi/data'
-        self.html_out = '/pygeoapi/data/html'
+        # self.secret_token = os.environ.get('INT_API_TOKEN', 'token')
+        # self.data_base_dir = '/pygeoapi/data'
+        # self.html_out = '/pygeoapi/data/html'
         self.db_config = {
             "dbname": os.getenv("DATABASE_NAME"),
             "user": os.getenv("DATABASE_USER"),
@@ -112,11 +114,16 @@ class SpeedTrafficFlow(BaseProcessor):
     def execute(self, data):
         mimetype = 'application/json'
 
-        self.boxid = data.get('id')
+        self.check_request_params(data)
+        atrai_bike_data = self.load_data()
+        atrai_bike_data['lng'] = atrai_bike_data['geometry'].x
+        atrai_bike_data['lat'] = atrai_bike_data['geometry'].y
+
+        # self.boxid = data.get('id')
         self.token = data.get('token')
 
-        if self.boxid is None:
-            raise ProcessorExecuteError('Cannot process without a id')
+        # if self.boxid is None:
+        #     raise ProcessorExecuteError('Cannot process without a id')
         if self.token is None:
             raise ProcessorExecuteError('Identify yourself with valid token!')
 
@@ -125,10 +132,10 @@ class SpeedTrafficFlow(BaseProcessor):
             raise ProcessorExecuteError('ACCESS DENIED wrong token')
 
         
-        atrai_bike_data = pd.read_csv('/pygeoapi/combined_data.csv')
-        device_counts = atrai_bike_data.groupby('device_id').size()
+        # atrai_bike_data = pd.read_csv('/pygeoapi/combined_data.csv')
+        device_counts = atrai_bike_data.groupby('boxId').size()
         valid_device_ids = device_counts[device_counts >= 10].index
-        atrai_bike_data = atrai_bike_data[atrai_bike_data['device_id'].isin(valid_device_ids)]
+        atrai_bike_data = atrai_bike_data[atrai_bike_data['boxId'].isin(valid_device_ids)]
         
         DB_URL = 'postgresql://%s:%s@%s:%s/%s' % (
             self.db_config['user'],
@@ -143,7 +150,7 @@ class SpeedTrafficFlow(BaseProcessor):
 
         filtered_data_MS = filter_bike_data_location(atrai_bike_data)
 
-        filtered_data_MS = filtered_data_MS[['createdAt', 'Speed', 'lat', 'lng', 'device_id', 'Standing']]
+        filtered_data_MS = filtered_data_MS[['createdAt', 'Speed', 'lat', 'lng', 'boxId', 'Standing']]
         filtered_data_MS['createdAt'] = pd.to_datetime(filtered_data_MS['createdAt'])
         filtered_data_MS = filtered_data_MS[filtered_data_MS['Speed'] >= 0]
         percentile_999 = filtered_data_MS['Speed'].quantile(0.999)
@@ -185,13 +192,13 @@ class SpeedTrafficFlow(BaseProcessor):
         m_lines.save(os.path.join(self.html_out, "speed_map.html"))
 
         filtered_data_MS_tf = filter_bike_data_location(atrai_bike_data)
-        filtered_data_MS_tf = filtered_data_MS_tf[['createdAt', 'Speed', 'lat', 'lng', 'device_id', 'Standing']]
+        filtered_data_MS_tf = filtered_data_MS_tf[['createdAt', 'Speed', 'lat', 'lng', 'boxId', 'Standing']]
         filtered_data_MS_tf['createdAt'] = pd.to_datetime(filtered_data_MS_tf['createdAt'])
         filtered_data_MS_tf = filtered_data_MS_tf.dropna(subset=['Standing'])
         filtered_data_MS_tf = filtered_data_MS_tf.sort_values(by='createdAt')
-        filtered_data_MS_tf['time_diff'] = filtered_data_MS_tf.groupby('device_id')['createdAt'].diff().dt.total_seconds() / 60
+        filtered_data_MS_tf['time_diff'] = filtered_data_MS_tf.groupby('boxId')['createdAt'].diff().dt.total_seconds() / 60
         filtered_data_MS_tf['new_ride'] = filtered_data_MS_tf['time_diff'] > 10
-        filtered_data_MS_tf['ride_id'] = filtered_data_MS_tf.groupby('device_id')['new_ride'].cumsum() + 1
+        filtered_data_MS_tf['ride_id'] = filtered_data_MS_tf.groupby('boxId')['new_ride'].cumsum() + 1
 
         filtered_data_MS_tf = filtered_data_MS_tf.groupby('ride_id').apply(lambda group: filter_start_end(group)).reset_index(drop=True)
         

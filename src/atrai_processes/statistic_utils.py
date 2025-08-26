@@ -9,15 +9,35 @@ from shapely.geometry import Point
 LOGGER = logging.getLogger(__name__)
 
 
+# def filter_points(points, eps=10):
+#     """
+#     Filter points using DBSCAN clustering to remove clustered points.
+#     Args:
+#         points (list): List of shapely Point objects.
+#         eps (float): The maximum distance between two samples for one to be considered as in the neighborhood of the other.
+#     Returns:
+#         list: List of filtered points.
+#     """
+#     coords = np.array([(point.y, point.x) for point in points])
+#     # Convert meters to degrees
+#     clustering = DBSCAN(eps=eps / 111139, min_samples=1).fit(coords)
+#     unique_labels = set(clustering.labels_)
+#
+#     filtered_points = []
+#     for label in unique_labels:
+#         cluster_points = coords[clustering.labels_ == label]
+#         centroid = cluster_points.mean(axis=0)
+#         filtered_points.append(centroid)
+#
+#     return [Point(y, x) for y, x in filtered_points]
 def filter_points(points, eps=10):
     """
     Filter points using DBSCAN clustering to remove clustered points.
-    Args:
-        points (list): List of shapely Point objects.
-        eps (float): The maximum distance between two samples for one to be considered as in the neighborhood of the other.
-    Returns:
-        list: List of filtered points.
     """
+    # Check if the list of points is empty
+    if not points:
+        return []
+
     coords = np.array([(point.y, point.x) for point in points])
     # Convert meters to degrees
     clustering = DBSCAN(eps=eps / 111139, min_samples=1).fit(coords)
@@ -31,7 +51,6 @@ def filter_points(points, eps=10):
 
     return [Point(y, x) for y, x in filtered_points]
 
-
 def process_tours(data, interval=15):
     """
     Process tours from the given data.
@@ -41,11 +60,11 @@ def process_tours(data, interval=15):
     Returns:
         gpd.GeoDataFrame: GeoDataFrame containing the processed tours.
     """
-    boxids = data["id"].unique()
+    boxids = data["boxId"].unique()
     all_tours = []
 
     for boxid in boxids:
-        subset = data[data["id"] == boxid]
+        subset = data[data["boxId"] == boxid]
         subset["createdAt"] = pd.to_datetime(subset["createdAt"])
         subset = subset.sort_values(by="createdAt")
         subset["tdiff"] = subset["createdAt"].diff()

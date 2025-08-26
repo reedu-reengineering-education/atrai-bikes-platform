@@ -2,6 +2,7 @@ import os
 import logging
 from .map_points_to_road_network import map_points_to_road_segments
 from pygeoapi.process.base import BaseProcessor, ProcessorExecuteError
+from .atrai_processor import AtraiProcessor
 
 import pandas as pd
 import geopandas as gpd
@@ -57,7 +58,7 @@ METADATA = {
 }
 
 
-class Distances(BaseProcessor):
+class Distances(AtraiProcessor):
     def __init__(self, processor_def):
 
         super().__init__(processor_def, METADATA)
@@ -67,11 +68,14 @@ class Distances(BaseProcessor):
     def execute(self, data):
         mimetype = "application/json"
 
-        self.boxid = data.get("id")
+        self.check_request_params(data)
+        atrai_bike_data = self.load_data()
+
+        # self.boxid = data.get("id")
         self.token = data.get("token")
 
-        if self.boxid is None:
-            raise ProcessorExecuteError("Cannot process without an id")
+        # if self.boxid is None:
+        #     raise ProcessorExecuteError("Cannot process without an id")
         if self.token is None:
             raise ProcessorExecuteError("Identify yourself with a valid token!")
 
@@ -96,11 +100,11 @@ class Distances(BaseProcessor):
                 raise ProcessorExecuteError("No road network data found")
 
             # Load raw sensor data
-            atrai_bike_data = gpd.read_postgis(
-                "SELECT * FROM osem_bike_data",
-                con=engine,
-                geom_col="geometry"
-            )
+            # atrai_bike_data = gpd.read_postgis(
+            #     "SELECT * FROM osem_bike_data",
+            #     con=engine,
+            #     geom_col="geometry"
+            # )
             if atrai_bike_data.crs is None:
                 atrai_bike_data.set_crs(epsg=4326, inplace=True)  # Replace 4326 with the correct CRS if needed
 

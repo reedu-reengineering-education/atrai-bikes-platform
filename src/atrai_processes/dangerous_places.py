@@ -1,6 +1,8 @@
 import os
 import logging
 from pygeoapi.process.base import BaseProcessor, ProcessorExecuteError
+from .atrai_processor import AtraiProcessor
+
 
 import pandas as pd
 import folium
@@ -68,23 +70,28 @@ METADATA = {
     }
 }
 
-class DangerousPlaces(BaseProcessor):
+class DangerousPlaces(AtraiProcessor):
     def __init__(self, processor_def):
 
         super().__init__(processor_def, METADATA)
-        self.secret_token = os.environ.get('INT_API_TOKEN', 'token')
-        self.data_base_dir = '/pygeoapi/data'
-        self.html_out = '/pygeoapi/data/html'
+        # self.secret_token = os.environ.get('INT_API_TOKEN', 'token')
+        # self.data_base_dir = '/pygeoapi/data'
+        # self.html_out = '/pygeoapi/data/html'
 
 
     def execute(self, data):
         mimetype =  'application/json'
 
-        self.boxid = data.get('id')
-        self.token = data.get('token')
+        self.check_request_params(data)
+        atrai_bike_data = self.load_data()
+        atrai_bike_data['lng'] = atrai_bike_data['geometry'].x
+        atrai_bike_data['lat'] = atrai_bike_data['geometry'].y
 
-        if self.boxid is None:
-            raise ProcessorExecuteError('Cannot process without a id')
+        # self.boxid = data.get('id')
+        # self.token = data.get('token')
+
+        # if self.boxid is None:
+        #     raise ProcessorExecuteError('Cannot process without a id')
         if self.token is None:
             raise ProcessorExecuteError('Identify yourself with valid token!')
 
@@ -98,13 +105,16 @@ class DangerousPlaces(BaseProcessor):
         #     OSM.add_box(self.boxid)
         #     OSM.save_OSM()
 
-        atrai_bike_data = pd.read_csv('/pygeoapi/combined_data.csv')
-        device_counts = atrai_bike_data.groupby('device_id').size()
+        # atrai_bike_data = pd.read_csv('/pygeoapi/combined_data.csv')
+        device_counts = atrai_bike_data.groupby('boxId').size()
         valid_device_ids = device_counts[device_counts >= 10].index
-        atrai_bike_data = atrai_bike_data[atrai_bike_data['device_id'].isin(valid_device_ids)]
+        atrai_bike_data = atrai_bike_data[atrai_bike_data['boxId'].isin(valid_device_ids)]
         filtered_data_MS = filter_bike_data_location(atrai_bike_data)
 
-        danger_data = filtered_data_MS[['createdAt', 'Overtaking Manoeuvre', 'Overtaking Distance', 'Standing', 'Rel. Humidity', 'Finedust PM1', 'Finedust PM2.5', 'Finedust PM4', 'Finedust PM10', 'geometry', 'device_id', 'lng', 'lat']]
+
+        danger_data = filtered_data_MS[['createdAt', 'Overtaking Manoeuvre', 'Overtaking Distance', 'Standing', 'Rel. Humidity', 'Finedust PM1', 'Finedust PM2.5', 'Finedust PM4', 'Finedust PM10', 'geometry', 'boxId', 'lng', 'lat']]
+        # danger_data = atrai_bike_data[['createdAt', 'Overtaking Manoeuvre', 'Overtaking Distance', 'Standing', 'Rel. Humidity', 'Finedust PM1', 'Finedust PM2.5', 'Finedust PM4', 'Finedust PM10', 'geometry', 'boxId', 'lng', 'lat']]
+
 
         danger_zones = danger_data.copy()
         max_distance = 400
