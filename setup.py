@@ -31,6 +31,7 @@ setuptools.setup(
         "filelock",
         "Flask-Cors==5.0.0",
         "folium",
+        "filelock",
         "geoalchemy2",
         "geojson",
         "geopandas",
