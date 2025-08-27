@@ -22,6 +22,8 @@ def map_points_to_road_segments(
         GeoDataFrame: Aggregated data per road segment.
     """
     # Ensure CRS match
+    road_segments = road_segments.set_crs(4326)
+    point_gdf = point_gdf.set_crs(4326)
     point_gdf = point_gdf.to_crs(road_segments.crs)
     road_segments = road_segments.reset_index(drop=True)
 
