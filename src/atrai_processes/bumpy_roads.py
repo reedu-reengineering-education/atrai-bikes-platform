@@ -101,13 +101,13 @@ class BumpyRoads(AtraiProcessor):
                 "Surface Compacted",
                 "Surface Paving",
             ]
-        )
+        ).copy()
 
         road_roughness["Roughness"] = road_roughness.apply(calculate_roughness, axis=1)
         road_roughness["Roughness_Normalized"] = (
             road_roughness["Roughness"] / road_roughness["Roughness"].max()
         ) * 100
-        road_roughness_clean = road_roughness.dropna(subset=["Roughness_Normalized"])
+        road_roughness_clean = road_roughness.dropna(subset=["Roughness_Normalized"]).copy()
 
         road_roughness_clean["id"] = road_roughness_clean.index
         road_roughness_clean = road_roughness_clean.drop(
