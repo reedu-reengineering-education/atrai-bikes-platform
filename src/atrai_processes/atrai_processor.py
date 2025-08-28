@@ -99,8 +99,8 @@ class AtraiProcessor(BaseProcessor):
                 LOGGER.error(msg)
                 raise ProcessorExecuteError(msg)
 
-        if self.campaign and self.boxId:
-            self.campaign = None
+        if self.campaign is not None and self.boxId is not None:
+            self.boxId = None
             self.col_create = False
 
 
