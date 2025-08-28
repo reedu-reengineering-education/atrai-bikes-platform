@@ -132,7 +132,8 @@ class AtraiProcessor(BaseProcessor):
 
 
     def load_road_data(self):
-        road_network_query = "SELECT * FROM bike_road_network"
+        road_network_query = f"SELECT * FROM bike_road_network_{self.campaign}"
+
         gdf = gpd.read_postgis(road_network_query, self.db_engine, geom_col="geometry")
         if len(gdf) == 0:
             raise ProcessorExecuteError("No road network data found")
