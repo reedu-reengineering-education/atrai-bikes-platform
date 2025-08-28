@@ -53,6 +53,7 @@ def map_points_to_road_segments(
     agg_dict = {col: "mean" for col in numeric_columns}
     agg_dict[distance_col] = "mean"
     agg_dict[id_column] = "count"
+    agg_dict['boxId'] = 'nunique'
 
     # Group by road segment index
     aggregated = joined.groupby("index_right").agg(agg_dict)
@@ -63,6 +64,7 @@ def map_points_to_road_segments(
     }
     new_columns[distance_col] = "Average Distance to Road"
     new_columns[id_column] = f"Number of Points"
+    new_columns['boxId'] = "Number of Boxes"
     aggregated = aggregated.rename(columns=new_columns)
 
     # Join geometry back in
