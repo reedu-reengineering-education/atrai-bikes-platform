@@ -56,6 +56,17 @@ METADATA = {
     "example": {"inputs": {"token": "ABC123XYZ666", "location": "Münster, Germany"}},
 }
 
+# {
+# 	"inputs": {
+# 					"location": [
+# 						{"city": "Arnsberg", "county": "Hochsauerlandkreis", "country": "Germany"},
+#     				{"city": "Münster", "country": "Germany"},
+# 						{"city": "Greifswald", "country": "Germany"},
+# 						{"city": "Wiesbaden", "country": "Germany"}
+# 					],
+# 		      "token": "token"
+#         }
+# }
 
 class RoadNetwork(BaseProcessor):
     def __init__(self, processor_def):
@@ -69,6 +80,8 @@ class RoadNetwork(BaseProcessor):
 
         self.token = data.get("token")
         self.location = data.get("location")
+        self.campaign = data.get("campaign")
+
 
         if self.token is None:
             raise ProcessorExecuteError("Identify yourself with valid token!")
@@ -109,7 +122,7 @@ class RoadNetwork(BaseProcessor):
         # we are only interested in the osmid, name and geometry
         edges = edges[["osmid", "name", "geometry"]]
         
-        edges.to_postgis("bike_road_network", engine, if_exists="replace", index=False)
+        edges.to_postgis(f"bike_road_network_{self.campaign}", engine, if_exists="replace", index=False)
 
         outputs = {
             "id": "road_network",

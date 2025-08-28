@@ -1,4 +1,8 @@
 import geopandas as gpd
+import logging
+
+
+LOGGER = logging.getLogger(__name__)
 
 def map_points_to_road_segments(
     point_gdf: gpd.GeoDataFrame,
@@ -22,18 +26,28 @@ def map_points_to_road_segments(
         GeoDataFrame: Aggregated data per road segment.
     """
     # Ensure CRS match
-    road_segments = road_segments.set_crs(4326)
-    point_gdf = point_gdf.set_crs(4326)
-    point_gdf = point_gdf.to_crs(road_segments.crs)
-    road_segments = road_segments.reset_index(drop=True)
+    projected_crs = "EPSG:3857"
+    road_segments = road_segments.set_crs(4326, allow_override=True).to_crs(projected_crs)
+    point_gdf = point_gdf.set_crs(4326, allow_override=True).to_crs(projected_crs)
+
+
+    point_extent = point_gdf.total_bounds
+    LOGGER.debug(point_extent)
+    road_segments_clipped = gpd.clip(road_segments, point_extent)
+    road_segments_clipped = road_segments_clipped[~road_segments_clipped.is_empty]
+
+    # road_segments = road_segments.reset_index(drop=True)
 
     # Spatial join to find nearest segment
     joined = gpd.sjoin_nearest(
         point_gdf,
-        road_segments,
+        road_segments_clipped,
         how="left",
         distance_col=distance_col,
     )
+
+    max_distance_threshold = 20
+    joined = joined[joined[distance_col] < max_distance_threshold]
 
     # Columns to aggregate
     agg_dict = {col: "mean" for col in numeric_columns}
@@ -53,8 +67,10 @@ def map_points_to_road_segments(
 
     # Join geometry back in
     result = aggregated.merge(
-        road_segments, left_on="index_right", right_index=True
+        road_segments_clipped, left_on="index_right", right_index=True
     )
     result["id"] = result.index
 
-    return gpd.GeoDataFrame(result, geometry="geometry", crs=road_segments.crs)
+    gdf = gpd.GeoDataFrame(result, geometry="geometry", crs=projected_crs)
+
+    return gdf.to_crs(4326)
