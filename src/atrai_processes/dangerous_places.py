@@ -1,15 +1,7 @@
-import os
 import logging
-from pygeoapi.process.base import BaseProcessor, ProcessorExecuteError
 from .atrai_processor import AtraiProcessor
 
-
-import pandas as pd
-import folium
-from folium.plugins import HeatMap
-
-from .useful_functs import filter_bike_data_location, replace_outliers_with_nan_by_device
-from .html_helper import create_danger_zones_legend_html, create_danger_zones_pm_legend_html
+from .useful_functs import  replace_outliers_with_nan_by_device
 
 LOGGER = logging.getLogger(__name__)
 
@@ -72,49 +64,24 @@ METADATA = {
 
 class DangerousPlaces(AtraiProcessor):
     def __init__(self, processor_def):
-
         super().__init__(processor_def, METADATA)
-        # self.secret_token = os.environ.get('INT_API_TOKEN', 'token')
-        # self.data_base_dir = '/pygeoapi/data'
-        # self.html_out = '/pygeoapi/data/html'
 
 
     def execute(self, data):
-        mimetype =  'application/json'
-
         self.check_request_params(data)
-        atrai_bike_data = self.load_data()
+        atrai_bike_data = self.load_bike_data()
         atrai_bike_data['lng'] = atrai_bike_data['geometry'].x
         atrai_bike_data['lat'] = atrai_bike_data['geometry'].y
 
-        # self.boxid = data.get('id')
-        # self.token = data.get('token')
-
-        # if self.boxid is None:
-        #     raise ProcessorExecuteError('Cannot process without a id')
-        if self.token is None:
-            raise ProcessorExecuteError('Identify yourself with valid token!')
-
-        if self.token != self.secret_token:
-            LOGGER.error("WRONG INTERNAL API TOKEN")
-            raise ProcessorExecuteError('ACCESS DENIED wrong token')
-
-        # if self.boxid not in os.listdir(self.data_base_dir):
-        #     LOGGER.info(f'download data for {self.boxid}')
-        #     OSM = OpenSenseMap.OpenSenseMap()
-        #     OSM.add_box(self.boxid)
-        #     OSM.save_OSM()
-
-        # atrai_bike_data = pd.read_csv('/pygeoapi/combined_data.csv')
         device_counts = atrai_bike_data.groupby('boxId').size()
         valid_device_ids = device_counts[device_counts >= 10].index
         atrai_bike_data = atrai_bike_data[atrai_bike_data['boxId'].isin(valid_device_ids)]
-        filtered_data_MS = filter_bike_data_location(atrai_bike_data)
 
+        danger_data = atrai_bike_data[['createdAt', 'Overtaking Manoeuvre', 'Overtaking Distance', 'Standing', 'Rel. Humidity', 'Finedust PM1', 'Finedust PM2.5', 'Finedust PM4', 'Finedust PM10', 'geometry', 'boxId', 'lng', 'lat']]
 
-        danger_data = filtered_data_MS[['createdAt', 'Overtaking Manoeuvre', 'Overtaking Distance', 'Standing', 'Rel. Humidity', 'Finedust PM1', 'Finedust PM2.5', 'Finedust PM4', 'Finedust PM10', 'geometry', 'boxId', 'lng', 'lat']]
-        # danger_data = atrai_bike_data[['createdAt', 'Overtaking Manoeuvre', 'Overtaking Distance', 'Standing', 'Rel. Humidity', 'Finedust PM1', 'Finedust PM2.5', 'Finedust PM4', 'Finedust PM10', 'geometry', 'boxId', 'lng', 'lat']]
-
+        #
+        # OVERTAKING DANGER WF
+        #
 
         danger_zones = danger_data.copy()
         max_distance = 400
@@ -126,20 +93,29 @@ class DangerousPlaces(AtraiProcessor):
         danger_zones['Risk Index Overtaking'] = (alpha * danger_zones['Overtaking Manoeuvre'] +
                                                 beta * danger_zones['Normalized Distance'])
 
-        m_danger_zones = folium.Map(location=[51.9607, 7.6261], zoom_start=12)
-        heatmap_data_dz = danger_zones[['lat', 'lng', 'Risk Index Overtaking']].dropna()
+        #m_danger_zones = folium.Map(location=[51.9607, 7.6261], zoom_start=12)
+        heatmap_data_dz = danger_zones[['lat', 'lng', 'Risk Index Overtaking', 'geometry']].dropna()
+        heatmap_data_dz.reset_index(inplace=True)
+        heatmap_data_dz.rename(columns={'index': 'id'}, inplace=True)
+
+        # assign result to self.data
+        self.data = heatmap_data_dz
+        self.create_collection_entries('danger_zones')
+
+        heatmap_data_dz.to_postgis(
+            self.title,
+            self.db_engine,
+            if_exists="replace",
+            index=False
+        )
+        # update_config
+        if self.col_create:
+            self.update_config()
+
         
-        HeatMap(
-            data=heatmap_data_dz.values,
-            radius=10,                   
-            blur=10,                                       
-        ).add_to(m_danger_zones)
-
-        legend_html_danger_zones = create_danger_zones_legend_html(danger_zones)
-        m_danger_zones.get_root().html.add_child(folium.Element(legend_html_danger_zones))
-
-        os.makedirs(self.html_out, exist_ok=True)
-        m_danger_zones.save(os.path.join(self.html_out, "danger_zones.html"))
+        #
+        # PM DANGER WF
+        #
 
         danger_zones_PM = danger_data.copy()
         danger_zones_PM = danger_zones_PM[(danger_zones_PM['Rel. Humidity'] <= 75) & (danger_zones_PM['Rel. Humidity'].notna())]
@@ -172,28 +148,32 @@ class DangerousPlaces(AtraiProcessor):
         e * danger_zones_PM['Normalized PM4'] +
         f * danger_zones_PM['Normalized PM10'])
 
-        m_danger_zones_PM = folium.Map(location=[51.9607, 7.6261], zoom_start=12)
 
-        heatmap_data_danger_zones_PM = danger_zones_PM[['lat', 'lng', 'Risk Index']].dropna()
+        heatmap_data_danger_zones_PM = danger_zones_PM[['lat', 'lng', 'Risk Index', 'geometry']].dropna()
+        heatmap_data_danger_zones_PM.reset_index(inplace=True)
+        heatmap_data_danger_zones_PM.rename(columns={'index': 'id'}, inplace=True)
 
-        HeatMap(
-            data=heatmap_data_danger_zones_PM.values,
-            radius=10,                   
-            blur=10,                     
-            max_zoom=1                   
-        ).add_to(m_danger_zones_PM)
 
-        legend_html_danger_zones_pm = create_danger_zones_pm_legend_html(danger_zones_PM)
-        m_danger_zones_PM.get_root().html.add_child(folium.Element(legend_html_danger_zones_pm))
+        # assign result to self.data
+        self.data = heatmap_data_danger_zones_PM
+        self.create_collection_entries('danger_zones_PM')
 
-        m_danger_zones_PM.save(os.path.join(self.html_out, "PM_danger_zones.html"))
+        heatmap_data_danger_zones_PM.to_postgis(
+            self.title,
+            self.db_engine,
+            if_exists="replace",
+            index=True
+        )
+        # update_config
+        if self.col_create:
+            self.update_config()
 
         outputs = {
             'id': 'dangerous_places',
-            'status': f"""created html at '{os.path.join(self.html_out, "danger_zones.html")} and {os.path.join(self.html_out, "PM_danger_zones.html")}'"""
+            'status': f"""done"""
         }
 
-        return mimetype, outputs
+        return self.mimetype, outputs
 
     def __repr__(self):
         return f'<DangerousPlaces> {self.name}'

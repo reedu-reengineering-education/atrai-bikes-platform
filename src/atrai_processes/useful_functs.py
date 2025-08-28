@@ -35,6 +35,8 @@ def nearest_neighbor_search(filtered_data, edges_filtered):
     ]).T)
     tree = BallTree(road_coords, metric='haversine')
 
+    filtered_data = filtered_data.dropna(subset=['lng', 'lat'])
+
     bike_coords = np.deg2rad(filtered_data[['lng', 'lat']].values)
     _, indices = tree.query(bike_coords, k=1)
     filtered_data['road_segment'] = indices.flatten()
