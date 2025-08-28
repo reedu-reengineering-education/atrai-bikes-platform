@@ -64,39 +64,15 @@ METADATA = {
 
 class Statistics(AtraiProcessor):
     def __init__(self, processor_def):
-
         super().__init__(processor_def, METADATA)
-        self.secret_token = os.environ.get("INT_API_TOKEN", "token")
-        self.data_base_dir = "/pygeoapi/data"
-        self.db_config = {
-            "dbname": os.getenv("DATABASE_NAME"),
-            "user": os.getenv("DATABASE_USER"),
-            "password": os.getenv("DATABASE_PASSWORD"),
-            "host": os.getenv("DATABASE_HOST"),
-            "port": os.getenv("DATABASE_PORT"),
-        }
+
 
     def execute(self, data):
-        mimetype = "application/json"
-
+        # check params
         self.check_request_params(data)
-        atrai_bike_data = self.load_data()
-
-        # self.token = data.get("token")
-        # self.tag = data.get("tag")
-        self.db_config = DatabaseConfig()
-
-        if self.token is None:
-            raise ProcessorExecuteError("Identify yourself with valid token!")
-
-        if self.token != self.secret_token:
-            LOGGER.error("WRONG INTERNAL API TOKEN")
-            raise ProcessorExecuteError("ACCESS DENIED wrong token")
-        
-        engine = self.db_config.get_engine()
-
-        # if self.tag is None:
-        #     raise ProcessorExecuteError("Cannot process without a tag")
+        # load data
+        self.check_request_params(data)
+        atrai_bike_data = self.load_bike_data()
 
         try:
             # Step 1: Load raw bike data
@@ -119,9 +95,15 @@ class Statistics(AtraiProcessor):
             convex_hull = atrai_bike_data.unary_union.convex_hull
 
             # Step 4: Create GeoDataFrame containing one row with the bounding box and all the statistics
+            tag_value = self.campaign if self.campaign is not None else self.boxId
+            if isinstance(tag_value, list):
+                ids_to_delete = tag_value
+            else:
+                ids_to_delete = [tag_value]
+
             bbox_gdf = gpd.GeoDataFrame(
                 {
-                    "tag": [self.campaign],
+                    "tag": [tag_value],
                     "statistics": [stats],
                     # add stats to the GeoDataFrame, like with the spread operator in js
                     # **{f"{k}": [v] for k, v in stats.items()},
@@ -132,9 +114,9 @@ class Statistics(AtraiProcessor):
             )
         
             # Step 5: Upsert this data into the database, overwrite if exists (by tag). the tag is the primary key
-            with engine.begin() as conn:
+            with self.db_engine.begin() as conn:
                 # Check if the table exists
-                if not engine.dialect.has_table(conn, "statistics"):
+                if not self.db_engine.dialect.has_table(conn, "statistics"):
                     # Create the table if it doesn't exist
                     bbox_gdf.to_postgis(
                         name="statistics",
@@ -145,9 +127,10 @@ class Statistics(AtraiProcessor):
                     )
                 else:
                     # Upsert the data: delete the existing row with the same tag and insert the new one
+                    sql = text("DELETE FROM statistics WHERE tag IN :ids")
                     conn.execute(
-                        text("DELETE FROM statistics WHERE tag = :tag"),
-                        {"tag": self.campaign},
+                        sql,
+                        {"ids": tuple(ids_to_delete)},
                     )
                     bbox_gdf.to_postgis(
                         name="statistics",
@@ -165,9 +148,9 @@ class Statistics(AtraiProcessor):
                 "statistics": stats
             }
 
-            return mimetype, outputs
+            return self.mimetype, outputs
         finally:
-            engine.dispose()  # Ensure all connections are closed
+            self.db_engine.dispose()  # Ensure all connections are closed
 
     def __repr__(self):
         return f"<Statistics> {self.name}"
