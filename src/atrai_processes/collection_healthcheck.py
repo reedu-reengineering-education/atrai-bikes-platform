@@ -41,8 +41,8 @@ PROCESS_METADATA = {
 class CollectionHealthcheck(BaseProcessor):
     def __init__(self, processor_def):
         super().__init__(processor_def, PROCESS_METADATA)
-
-        self.col_base_url = os.path.join(os.environ.get("API_URL"), 'collections')
+        self.base_url = os.environ.get("API_URL", 'localhost:5000')
+        self.col_base_url = os.path.join(self.base_url, 'collections')
         self.serv_config = os.environ.get(key="PYGEOAPI_SERV_CONFIG")
         self.input = None
 

@@ -43,7 +43,7 @@ class DataIngestion(BaseProcessor):
     def __init__(self, processor_def):
         super().__init__(processor_def, PROCESS_METADATA)
         self.secret_token = os.environ.get("INT_API_TOKEN")
-        self.api_url_base = os.environ.get("API_URL")
+        self.api_url_base = os.environ.get("API_URL", 'http://localhost:80')
 
         self.ingestion_dict = {
             "road_network": {
