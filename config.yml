@@ -39,13 +39,18 @@ metadata:
     url: https://atrai.bike
 resources:
   # PROCESSES
+  data_ingestion:
+    processor:
+      name: atrai_processes.DataIngestion
+  collection_delete:
+    processor:
+      name: atrai_processes.CollectionDelete
+  collection_healthcheck:
+    processor:
+      name: atrai_processes.CollectionHealthcheck
   bumpy-roads:
     processor:
       name: atrai_processes.BumpyRoads
-    type: process
-  calculate_statistics:
-    processor:
-      name: atrai_processes.Statistics
     type: process
   dangerous-places:
     processor:

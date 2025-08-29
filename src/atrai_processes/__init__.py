@@ -7,6 +7,8 @@ from .dangerous_places import DangerousPlaces
 from .statistics import Statistics
 from .road_network import RoadNetwork
 from .osem_data_ingestion import OsemDataIngestion
-from .statistics import Statistics
 #from .Atrai_processor import AtraiProcessor
 from .simple_process import SimpleProcess
+from .collection_delete import CollectionDelete
+from .collection_healthcheck import CollectionHealthcheck
+from .data_ingestion import DataIngestion
