@@ -42,12 +42,15 @@ resources:
   data_ingestion:
     processor:
       name: atrai_processes.DataIngestion
+    type: process
   collection_delete:
     processor:
       name: atrai_processes.CollectionDelete
+    type: process
   collection_healthcheck:
     processor:
       name: atrai_processes.CollectionHealthcheck
+    type: process
   bumpy-roads:
     processor:
       name: atrai_processes.BumpyRoads
