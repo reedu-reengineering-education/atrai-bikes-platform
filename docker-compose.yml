@@ -41,6 +41,8 @@ services:
     platform: linux/x86_64
     image: postgis/postgis:17-3.5
     container_name: postgis_db
+    volumes:
+      - postgis_data:/var/lib/postgresql/data
     environment:
       - POSTGRES_USER=${DATABASE_USER}
       - POSTGRES_PASSWORD=${DATABASE_PASSWORD}
@@ -50,6 +52,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+volumes:
+  postgis_data:
 
   # jupyter:
   #   image: quay.io/jupyter/minimal-notebook:latest

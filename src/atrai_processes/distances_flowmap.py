@@ -60,51 +60,24 @@ METADATA = {
 
 class Distances(AtraiProcessor):
     def __init__(self, processor_def):
-
         super().__init__(processor_def, METADATA)
-        self.secret_token = os.environ.get("INT_API_TOKEN", "token")
-        self.db_config = DatabaseConfig()
+
 
     def execute(self, data):
-        mimetype = "application/json"
-
+        # check params
         self.check_request_params(data)
-        atrai_bike_data = self.load_data()
+        # load data
+        atrai_bike_data = self.load_bike_data()
+        road_segments = self.load_road_data()
 
-        # self.boxid = data.get("id")
-        self.token = data.get("token")
-
-        # if self.boxid is None:
-        #     raise ProcessorExecuteError("Cannot process without an id")
-        if self.token is None:
-            raise ProcessorExecuteError("Identify yourself with a valid token!")
-
-        if self.token != self.secret_token:
-            LOGGER.error("WRONG INTERNAL API TOKEN")
-            raise ProcessorExecuteError("ACCESS DENIED wrong token")
-
-        engine = self.db_config.get_engine()
 
         try:
-
-            # Load road network
-            road_segments = gpd.read_postgis(
-                "SELECT * FROM bike_road_network",
-                con=engine,
-                geom_col="geometry"
-            )
             if road_segments.crs is None:
                 road_segments.set_crs(epsg=4326, inplace=True)  # Replace 4326 with the correct CRS if needed
 
             if road_segments.empty:
                 raise ProcessorExecuteError("No road network data found")
 
-            # Load raw sensor data
-            # atrai_bike_data = gpd.read_postgis(
-            #     "SELECT * FROM osem_bike_data",
-            #     con=engine,
-            #     geom_col="geometry"
-            # )
             if atrai_bike_data.crs is None:
                 atrai_bike_data.set_crs(epsg=4326, inplace=True)  # Replace 4326 with the correct CRS if needed
 
@@ -139,22 +112,30 @@ class Distances(AtraiProcessor):
                 id_column="id"
             )
 
+            # assign result to self.data
+            self.data = overtaking_flowmap
+            self.create_collection_entries('overtaking_distance')
+
             # Save to PostGIS
             overtaking_flowmap.to_postgis(
-                "distances_flowmap",
-                engine,
+                self.title,
+                self.db_engine,
                 if_exists="replace",
                 index=False
             )
+
+            # update_config
+            if self.col_create:
+                self.update_config()
 
             outputs = {
                 "id": "distances_flowmap",
                 "status": f"Processed {len(overtaking_flowmap)} road segments with overtaking data"
             }
 
-            return mimetype, outputs
+            return self.mimetype, outputs
         finally:
-            engine.dispose()  # Ensure all connections are closed
+            self.db_engine.dispose()  # Ensure all connections are closed
 
     def __repr__(self):
         return f"<Distances> {self.name}"
