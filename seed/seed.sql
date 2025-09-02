@@ -18,3 +18,4 @@ CREATE TABLE IF NOT EXISTS statistics (
     statistics TEXT,
     "updatedAt" TIMESTAMP
 );
+DROP SCHEMA tiger CASCADE;
