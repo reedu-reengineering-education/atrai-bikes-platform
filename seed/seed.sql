@@ -1,7 +1,7 @@
 CREATE EXTENSION IF NOT EXISTS postgis;
 CREATE EXTENSION IF NOT EXISTS postgis_topology;
 --CREATE TABLE IF NOT EXISTS road_roughness (id SERIAL PRIMARY KEY, geom GEOMETRY(Point, 4326), roughness FLOAT);
-CREATE TABLE IF NOT EXISTS osem_bike_data (id SERIAL PRIMARY KEY, geometry GEOMETRY(Point, 4326));
+CREATE TABLE IF NOT EXISTS osem_bike_data (index SERIAL PRIMARY KEY, geometry GEOMETRY(Point, 4326));
 --CREATE TABLE IF NOT EXISTS distances_flowmap (
 --    id SERIAL PRIMARY KEY,
 --    "Average Overtaking Distance" FLOAT,
