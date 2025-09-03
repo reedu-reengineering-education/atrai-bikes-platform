@@ -1,6 +1,13 @@
 import os
 import requests
 import time
+import json
+from datetime import datetime
+
+timestamp = datetime.now().strftime("%Y%m%d_%H%M")
+filename = f"ingestion_results_{timestamp}.json"
+path_base = "/home/ubuntu/workspace/api/ingestion_logs"
+file_path = os.path.join(path_base, filename)
 
 api_url_base = "http://api.atrai.bike"
 token = "token"
@@ -37,6 +44,8 @@ campaigns = [
     'wiesbaden'
 ]
 
+d = dict()
+
 print(f"starting with osem_data_ingestion")
 endpoint = os.path.join(api_url_base, f"processes/osem_data_ingestion/execution?f=json")
 payload = {
@@ -45,10 +54,12 @@ payload = {
     }
 }
 try:
-    requests.post(endpoint, json=payload).raise_for_status()
+    res = requests.post(endpoint, json=payload)
     print("osem_data_ingestion successful")
+    d['osem_data_ingestion'] = res.text
 except requests.exceptions.RequestException as e:
     print(f"Error: {e}")
+
 
 for campaign in campaigns:
     for process in processes:
@@ -72,8 +83,20 @@ for campaign in campaigns:
             }
         print(f"campaign: '{campaign}', process: '{process}'")
         try:
-            requests.post(endpoint, json=payload).raise_for_status()
+            res = requests.post(endpoint, json=payload)
+            if campaign not in d:
+                d[campaign] = {}
+            d[campaign][process] = res.text
+
             time.sleep(2)
             print(f"ingestions on '{endpoint}' for '{campaign}' successful")
         except requests.exceptions.RequestException as e:
             print(f"Error: {e}")
+
+
+
+
+with open(file_path, 'w') as f:
+    json.dump(d, f, indent=4)
+
+print(f"Ingestion results saved to {filename}")
