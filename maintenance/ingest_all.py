@@ -56,7 +56,7 @@ payload = {
 try:
     res = requests.post(endpoint, json=payload)
     print("osem_data_ingestion successful")
-    d['osem_data_ingestion'] = res.text
+    d['osem_data_ingestion'] = res.status_code
 except requests.exceptions.RequestException as e:
     print(f"Error: {e}")
 
@@ -86,7 +86,7 @@ for campaign in campaigns:
             res = requests.post(endpoint, json=payload)
             if campaign not in d:
                 d[campaign] = {}
-            d[campaign][process] = res.text
+            d[campaign][process] = res.status_code
 
             time.sleep(2)
             print(f"ingestions on '{endpoint}' for '{campaign}' successful")
