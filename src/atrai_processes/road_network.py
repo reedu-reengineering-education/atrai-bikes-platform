@@ -115,10 +115,11 @@ class RoadNetwork(AtraiProcessor):
         LOGGER.debug(edges.columns)
         edges = edges[["osmid", "name", "surface", "geometry"]]
 
+        edges['index'] = edges.index
+        self.id_field = 'index'
         self.data = edges
         self.create_collection_entries('bike_road_network')
 
-        edges['id'] = edges.index
         edges.to_postgis(f"bike_road_network_{self.campaign}", engine, if_exists="replace", index=False)
 
         if self.col_create:

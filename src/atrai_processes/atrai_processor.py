@@ -38,6 +38,7 @@ class AtraiProcessor(BaseProcessor):
         self.token = None
         self.metatable = pd.read_csv(self.metatable_path)
 
+        self.id_field = 'id'
         self.mimetype = "application/json"
         self.data = None
 
@@ -194,7 +195,7 @@ class AtraiProcessor(BaseProcessor):
                             "password": self.db_password,
                             "search_path": ["public"],
                         },
-                        "id_field": "id",
+                        "id_field": f"{self.id_field}",
                         "table": f"{self.title}",
                         "geom_field": "geometry",
                     }
