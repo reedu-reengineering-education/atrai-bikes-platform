@@ -1,6 +1,7 @@
 import os
 import logging
 from pygeoapi.process.base import BaseProcessor, ProcessorExecuteError
+from .atrai_processor import AtraiProcessor
 
 import osmnx as ox
 import networkx as nx
@@ -68,7 +69,7 @@ METADATA = {
 #         }
 # }
 
-class RoadNetwork(BaseProcessor):
+class RoadNetwork(AtraiProcessor):
     def __init__(self, processor_def):
 
         super().__init__(processor_def, METADATA)
@@ -76,20 +77,11 @@ class RoadNetwork(BaseProcessor):
         self.db_config = DatabaseConfig()
 
     def execute(self, data):
-        mimetype = "application/json"
-
-        self.token = data.get("token")
+        self.check_request_params(data)
         self.location = data.get("location")
-        self.campaign = data.get("campaign")
 
+        ox.settings.useful_tags_way += ['surface']
 
-        if self.token is None:
-            raise ProcessorExecuteError("Identify yourself with valid token!")
-
-        if self.token != self.secret_token:
-            LOGGER.error("WRONG INTERNAL API TOKEN")
-            raise ProcessorExecuteError("ACCESS DENIED wrong token")
-        
         filters = [
             '["highway"~"cycleway"]',
             '["highway"~"path|footway"]["bicycle"~"designated|yes"]',
@@ -120,16 +112,24 @@ class RoadNetwork(BaseProcessor):
         engine = self.db_config.get_engine()
 
         # we are only interested in the osmid, name and geometry
-        edges = edges[["osmid", "name", "geometry"]]
-        
-        edges.to_postgis(f"bike_road_network_{self.campaign}", engine, if_exists="replace", index=False)
+        LOGGER.debug(edges.columns)
+        edges = edges[["osmid", "name", "surface", "geometry"]]
+
+        self.data = edges
+        self.create_collection_entries('road_network')
+
+        edges['id'] = edges.index
+        edges.to_postgis(f"road_network_{self.campaign}", engine, if_exists="replace", index=False)
+
+        if self.col_create:
+            self.update_config()
 
         outputs = {
             "id": "road_network",
             "status": f"""road network data imported. {edges.shape[0]} edges""",
         }
 
-        return mimetype, outputs
+        return self.mimetype, outputs
 
     def __repr__(self):
         return f"<RoadNetwork> {self.name}"

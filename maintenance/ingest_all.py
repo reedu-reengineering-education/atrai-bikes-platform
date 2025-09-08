@@ -69,7 +69,8 @@ for campaign in campaigns:
                 "inputs": {
                     "campaign": campaign,
                     "token": token,
-                    "location": ingestion_dict["road_network"][campaign]
+                    "location": ingestion_dict["road_network"][campaign],
+                    "col_create": True
                 }
             }
 
