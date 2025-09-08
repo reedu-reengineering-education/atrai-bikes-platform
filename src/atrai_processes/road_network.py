@@ -116,10 +116,10 @@ class RoadNetwork(AtraiProcessor):
         edges = edges[["osmid", "name", "surface", "geometry"]]
 
         self.data = edges
-        self.create_collection_entries('road_network')
+        self.create_collection_entries('bike_road_network')
 
         edges['id'] = edges.index
-        edges.to_postgis(f"road_network_{self.campaign}", engine, if_exists="replace", index=False)
+        edges.to_postgis(f"bike_road_network_{self.campaign}", engine, if_exists="replace", index=False)
 
         if self.col_create:
             self.update_config()
