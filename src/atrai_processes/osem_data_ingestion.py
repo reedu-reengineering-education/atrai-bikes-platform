@@ -145,11 +145,9 @@ class OsemDataIngestion(BaseProcessor):
             OSM = osmtb.OpenSenseMap()
             boxIds = [i for i in self.boxes_metadata['id']]
             OSM.add_box(boxIds)
-            if all(id in existing_tables for id in boxIds):
-                OSM.read_OSM(mode='postgis', engine=engine)
-                OSM.update_OSM(mode='postgis', engine=engine)
-            else:
-                OSM.fetch_box_data()
+            OSM.update_OSM(mode='postgis', engine=engine)
+
+            OSM.fetch_box_data()
 
             OSM.merge_OSM()
             OSM.save_OSM(mode='postgis', engine=engine)
