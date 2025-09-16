@@ -90,12 +90,12 @@ class Distances(AtraiProcessor):
             filtered_data["createdAt"] = pd.to_datetime(filtered_data["createdAt"])
             filtered_data = filtered_data.dropna(subset=["Overtaking Distance"])
             filtered_data = filtered_data[
-                (filtered_data["Overtaking Manoeuvre"] > 0.05) &
-                (filtered_data["Overtaking Distance"] > 0)
+                (filtered_data["Overtaking Manoeuvre"] > 0.5) &
+                (filtered_data["Overtaking Distance"] > 25)
             ]
-            filtered_data["Normalized Overtaking Distance"] = (
-                filtered_data["Overtaking Distance"] / 200
-            ).clip(upper=1)
+            # filtered_data["Normalized Overtaking Distance"] = (
+            #     filtered_data["Overtaking Distance"] / 200
+            # ).clip(upper=1)
 
             # Add id for grouping
             filtered_data["id"] = filtered_data.index
@@ -107,7 +107,7 @@ class Distances(AtraiProcessor):
                 numeric_columns=[
                     "Overtaking Distance",
                     "Overtaking Manoeuvre",
-                    "Normalized Overtaking Distance"
+                    # "Normalized Overtaking Distance"
                 ],
                 id_column="id"
             )

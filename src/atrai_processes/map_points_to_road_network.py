@@ -7,7 +7,7 @@ LOGGER = logging.getLogger(__name__)
 
 def histo(data):
     clean_data = data.dropna()
-    bins = [0, 0.5, 1, 1.5, 2, np.inf]
+    bins = [0, 50, 100, 150, 200, np.inf]
 
     counts, bin_edges = np.histogram(clean_data, bins=bins)
     string = ", ".join(str(x) for x in counts)
@@ -58,6 +58,7 @@ def map_points_to_road_segments(
 
     max_distance_threshold = 20
     joined = joined[joined[distance_col] < max_distance_threshold]
+    LOGGER.debug(joined.columns)
 
     # Columns to aggregate
     o_dist = False
@@ -67,21 +68,47 @@ def map_points_to_road_segments(
     agg_dict['boxId'] = 'nunique'
     if 'Overtaking Distance' in joined.columns:
         o_dist = True
-        agg_dict['Overtaking Distance'] = histo
+        agg_dict['Overtaking Distance'] = ['mean', histo]
 
     # Group by road segment index
     aggregated = joined.groupby("index_right").agg(agg_dict)
 
-    # Rename columns
+    aggregated.columns = ['_'.join(map(str, col)).strip() for col in aggregated.columns.values]
+
+
+    # # Rename columns
+    # new_columns = {
+    #     col: f"Average {col}" for col in numeric_columns
+    # }
+    # new_columns[distance_col] = "Average Distance to Road"
+    # new_columns[id_column] = f"Number of Points"
+    # new_columns['boxId'] = "Number of Boxes"
+    # if o_dist:
+    #     new_columns['Overtaking Distance'] = 'counts'
+    #
     new_columns = {
-        col: f"Average {col}" for col in numeric_columns
+        f"{col}_mean": f"Average {col}" for col in numeric_columns
     }
-    new_columns[distance_col] = "Average Distance to Road"
-    new_columns[id_column] = f"Number of Points"
-    new_columns['boxId'] = "Number of Boxes"
+    new_columns[f"{distance_col}_mean"] = "Average Distance to Road"
+    new_columns[f"{id_column}_count"] = "Number of Points"
+    new_columns['boxId_nunique'] = "Number of Boxes"
+
     if o_dist:
-        new_columns['Overtaking Distance'] = 'counts'
+        new_columns['Overtaking Distance_mean'] = 'Average Overtaking Distance'
+        new_columns['Overtaking Distance_histo'] = 'Overtaking Distance Counts'
     aggregated = aggregated.rename(columns=new_columns)
+
+    #TODO just use another func at this point?
+    if "i_d" in aggregated.columns:
+        newer_cols = {}
+        newer_cols["R_o_u_g_h_n_e_s_s"] = "Roughness"
+        newer_cols["b_o_x_I_d"] = "Number of Boxes"
+        newer_cols["i_d"] = "streetid"
+        newer_cols["d_i_s_t_a_n_c_e___t_o___r_o_a_d"] = "Distance to Road"
+        newer_cols["R_o_u_g_h_n_e_s_s___N_o_r_m_a_l_i_z_e_d"] = "Normalized Roughness"
+        aggregated = aggregated.rename(columns=newer_cols)
+
+    # aggregated.columns = ['_'.join(map(str, col)).strip() for col in aggregated.columns.values]
 
     # Join geometry back in
     result = aggregated.merge(
