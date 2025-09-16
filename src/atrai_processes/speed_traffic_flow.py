@@ -142,9 +142,10 @@ class SpeedTrafficFlow(AtraiProcessor):
             crs=edges_filtered.crs
         )
 
-        segment_data['avg_speed_unnorm_kmh'] = (segment_data['avg_speed'] * percentile_999) * 3.6
+        segment_data['avg_speed[km/h]'] = (segment_data['avg_speed'] * percentile_999) * 3.6
         segment_data.reset_index(inplace=True)
         segment_data.rename(columns={'index': 'id'}, inplace=True)
+        segment_data.drop(columns='avg_speed', inplace=True)
 
         self.data = segment_data
         self.create_collection_entries('speed_map')
