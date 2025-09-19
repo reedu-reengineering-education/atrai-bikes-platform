@@ -100,8 +100,8 @@ class RoadNetwork(AtraiProcessor):
         for place in self.location:
             G_place = ox.graph_from_place(
                 place,
-                custom_filter=filters,
-                # network_type="bike",
+                #custom_filter=filters,
+                network_type="bike",
                 # simplify=True,
             )
             road_network = nx.compose(road_network, G_place)
