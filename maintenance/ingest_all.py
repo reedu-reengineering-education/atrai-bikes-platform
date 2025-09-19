@@ -4,13 +4,21 @@ import time
 import json
 from datetime import datetime
 
+
+local = True
+ingestion = True
+
 timestamp = datetime.now().strftime("%Y%m%d_%H%M")
 filename = f"ingestion_results_{timestamp}.json"
-path_base = "/home/ubuntu/workspace/api/ingestion_logs"
-file_path = os.path.join(path_base, filename)
-
-api_url_base = "http://api.atrai.bike"
 token = "token"
+if local:
+    path_base = './'
+    api_url_base = "http://localhost:5000"
+else:
+    path_base = "/home/ubuntu/workspace/api/ingestion_logs"
+    api_url_base = "http://api.atrai.bike"
+
+file_path = os.path.join(path_base, filename)
 
 ingestion_dict = {
     "road_network": {
@@ -27,6 +35,8 @@ ingestion_dict = {
              {"city": "Mainz", "country": "Germany"}],
     }
 }
+
+
 # 'osem_data_ingestion' needs to run anyways always
 processes = [
     'road_network',
@@ -46,19 +56,20 @@ campaigns = [
 
 d = dict()
 
-print(f"starting with osem_data_ingestion")
-endpoint = os.path.join(api_url_base, f"processes/osem_data_ingestion/execution?f=json")
-payload = {
-    "inputs": {
-        "token": token
+if ingestion:
+    print(f"starting with osem_data_ingestion")
+    endpoint = os.path.join(api_url_base, f"processes/osem_data_ingestion/execution?f=json")
+    payload = {
+        "inputs": {
+            "token": token
+        }
     }
-}
-try:
-    res = requests.post(endpoint, json=payload)
-    print("osem_data_ingestion successful")
-    d['osem_data_ingestion'] = res.status_code
-except requests.exceptions.RequestException as e:
-    print(f"Error: {e}")
+    try:
+        res = requests.post(endpoint, json=payload)
+        print("osem_data_ingestion successful")
+        d['osem_data_ingestion'] = res.status_code
+    except requests.exceptions.RequestException as e:
+        print(f"Error: {e}")
 
 
 for campaign in campaigns:
@@ -100,4 +111,5 @@ for campaign in campaigns:
 with open(file_path, 'w') as f:
     json.dump(d, f, indent=4)
 
+print(d)
 print(f"Ingestion results saved to {filename}")
