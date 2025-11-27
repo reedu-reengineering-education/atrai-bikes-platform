@@ -27,16 +27,17 @@ setuptools.setup(
         #
         #   sync with requirements.txt
         #
+        "Flask-Cors==5.0.0",
         "cdsapi",
         "filelock",
-        "Flask-Cors==5.0.0",
-        "folium",
         "filelock",
+        "folium",
         "geoalchemy2",
         "geojson",
         "geopandas",
         "h5netcdf",
         "matplotlib",
+        "movingpandas",
         "netcdf4",
         "numpy==1.24.0",
         "osmnx",
@@ -52,6 +53,7 @@ setuptools.setup(
         "shyaml",
         "sqlalchemy",
         "tifffile",
+        "transformations",
         "xarray==2024.1.0",
         "zarr"
     ]

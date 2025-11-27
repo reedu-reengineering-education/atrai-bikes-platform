@@ -1,12 +1,13 @@
+Flask-Cors==5.0.0
 cdsapi
 filelock
-Flask-Cors==5.0.0
 folium
 geoalchemy2
 geojson
 geopandas
 h5netcdf
 matplotlib
+movingpandas
 netcdf4
 numpy==1.24.0
 osmnx
@@ -23,6 +24,7 @@ shapely
 shyaml
 sqlalchemy
 tifffile
+transformations
 xarray==2024.1.0
 zarr
 git+https://github.com/52North/OpenSenseMapToolbox.git#egg=opensensemaptoolbox

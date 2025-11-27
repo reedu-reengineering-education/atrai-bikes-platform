@@ -91,6 +91,10 @@ resources:
     processor:
       name: atrai_processes.SimpleProcess
     type: process
+  annotate_roads:
+    processor:
+      name: atrai_processes.AnnotateRoads
+    type: process
   # COLLECTIONS
   osem_bike_data:
     description: "openSenseMap bike data"
@@ -144,7 +148,7 @@ resources:
         type: feature
     title: statistics
     type: collection
-  
+
 server:
   bind:
     host: 0.0.0.0
@@ -173,3 +177,4 @@ server:
   ogc_schemas_location: /schemas.opengis.net
   pretty_print: true
   url: /
+  
