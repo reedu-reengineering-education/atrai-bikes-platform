@@ -12,3 +12,4 @@ from .simple_process import SimpleProcess
 from .collection_delete import CollectionDelete
 from .collection_healthcheck import CollectionHealthcheck
 from .data_ingestion import DataIngestion
+from .annotate_roads import AnnotateRoads

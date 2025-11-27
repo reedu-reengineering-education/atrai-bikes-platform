@@ -80,7 +80,7 @@ class RoadNetwork(AtraiProcessor):
         self.check_request_params(data)
         self.location = data.get("location")
 
-        ox.settings.useful_tags_way += ['surface']
+        ox.settings.useful_tags_way += ['surface', 'oneway', 'junction', "cycleway"]
 
         filters = [
             '["highway"~"cycleway"]',
@@ -113,7 +113,7 @@ class RoadNetwork(AtraiProcessor):
 
         # we are only interested in the osmid, name and geometry
         LOGGER.debug(edges.columns)
-        edges = edges[["osmid", "name", "surface", "geometry"]]
+        edges = edges[["osmid", "name", "surface", "geometry", "oneway", "junction", "cycleway"]]
 
         edges['index'] = edges.index
         self.id_field = 'index'
