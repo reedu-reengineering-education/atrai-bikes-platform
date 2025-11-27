@@ -44,7 +44,8 @@ processes = [
     'statistics',
     'bumpy-roads',
     'dangerous-places',
-    'speed-traffic-flow'
+    'speed-traffic-flow',
+    'annotate_roads'
 ]
 campaigns = [
     'arnsberg',
