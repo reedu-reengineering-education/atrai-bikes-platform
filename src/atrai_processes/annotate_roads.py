@@ -132,7 +132,8 @@ class AnnotateRoads(AtraiProcessor):
         LOGGER.info("snapping")
 
         func = partial(worker, road_network=road_segments)
-        with multiprocessing.Pool(processes=os.cpu_count()) as pool:
+        ctx = multiprocessing.get_context('spawn')
+        with ctx.Pool(processes=os.cpu_count()) as pool:
             results = pool.map(func, split.trajectories)
 
         LOGGER.info("snapping done")
