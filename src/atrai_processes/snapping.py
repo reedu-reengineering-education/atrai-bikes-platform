@@ -20,6 +20,7 @@
 from collections import defaultdict
 from dataclasses import dataclass
 from functools import cached_property, partial
+import logging
 from typing import Optional
 
 import numpy as np
@@ -32,6 +33,8 @@ from shapely.ops import transform
 
 from transformations import unit_vector
 
+
+LOGGER = logging.getLogger(__name__)
 
 # https://epsg.io/4326 -- World Geodetic System 1984, used in GPS
 WSG84 = "EPSG:4326"  # degrees lat/lng WSG84
@@ -343,6 +346,7 @@ def snap_to_roads(road_df, traject_df, buffer=25.0, choice_count=8):
         candidates = candidates[:choice_count]
 
         if not candidates:
+            # LOGGER.info("no candidate for point", point_index, point)
             # print("no candidate for point", point_index, point)
             candidates = [Candidate(0, 0, 1, None, point, direction, None, direction)]
 
@@ -390,3 +394,4 @@ def snap_to_roads(road_df, traject_df, buffer=25.0, choice_count=8):
     df["way_id"] = [c.road if c.road else 0 for c in result_candidates]
     df["direction_reversed"] = [c.road_direction_dot < 0 for c in result_candidates]
     return df
+

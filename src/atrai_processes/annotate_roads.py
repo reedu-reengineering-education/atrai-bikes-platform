@@ -5,10 +5,12 @@ import multiprocessing
 import os
 
 import geopandas as gpd
+from ast import literal_eval
 import movingpandas as mpd
 import numpy as np
 import pandas as pd
 from pygeoapi.process.base import BaseProcessor, ProcessorExecuteError
+from shapely.geometry import LineString
 
 from .atrai_processor import AtraiProcessor
 from .snapping import snap_to_roads
@@ -106,9 +108,17 @@ def histo(data):
     string = ", ".join(str(x) for x in counts)
     return string
 
+def filter_undirected_duplicates(gdf):
+    def normalize_geom(geom):
+        wkt_a = geom.wkt
+        wkt_b = LineString(list(geom.coords)[::-1]).wkt
+        return wkt_a if wkt_a < wkt_b else wkt_b
 
-def worker(traj, road_network):
-    return snap_to_roads(road_network, traj.df)
+    out_gdf = gdf.copy()
+    out_gdf['__uid'] = out_gdf['geometry'].apply(normalize_geom)
+    out_gdf = out_gdf.drop_duplicates(subset=['__uid'])
+    return out_gdf.drop(columns=['__uid'])
+
 
 class AnnotateRoads(AtraiProcessor):
     def __init__(self, processor_def):
@@ -119,7 +129,7 @@ class AnnotateRoads(AtraiProcessor):
         self.check_request_params(data)
         # load data
         atrai_bike_data = self.load_bike_data().to_crs("EPSG:3857").dropna(subset=['geometry'])
-        road_segments = self.load_road_data().to_crs("EPSG:3857").dropna(subset=['geometry'])
+        road_segments = filter_undirected_duplicates(self.load_road_data().to_crs("EPSG:3857").dropna(subset=['geometry']))
 
         # process data
         #create tour trajectories
