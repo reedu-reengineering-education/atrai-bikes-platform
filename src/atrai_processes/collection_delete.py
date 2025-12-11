@@ -12,9 +12,9 @@ LOGGER = logging.getLogger(__name__)
 
 PROCESS_METADATA = {
     "version": "0.2.0",
-    "id": "danger levels creation",
+    "id": "collection dele",
     "title": {
-        "en": "dangerlvls",
+        "en": "col_delete",
     },
     "description": {"en": "process that deletes collections and sources"},
     "jobControlOptions": ["sync-execute", "async-execute"],

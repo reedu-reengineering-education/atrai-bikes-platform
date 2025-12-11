@@ -23,7 +23,7 @@ METADATA = {
     "title": {
         "en": "annotate_roads",
     },
-    "description": {"en": "evaluates bumpiness of roads"},
+    "description": {"en": "annotates sensor data to road segments by snapping individual tours to the road segments"},
     "jobControlOptions": ["sync-execute", "async-execute"],
     "keywords": ["process"],
     "links": [
@@ -64,7 +64,7 @@ METADATA = {
             "schema": {"type": "string"},
         },
     },
-    "example": {"inputs": {"campaign": "münster", "token": "ABC123XYZ666"}},
+    "example": {"inputs": {"campaign": "münster", "col_create": "true", "token": "ABC123XYZ666"}},
 }
 
 def calculate_flow_metrics(df):

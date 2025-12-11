@@ -9,9 +9,9 @@ LOGGER = logging.getLogger(__name__)
 
 PROCESS_METADATA = {
     "version": "0.2.0",
-    "id": "danger levels creation",
+    "id": "collection healthcheck",
     "title": {
-        "en": "dangerlvls",
+        "en": "collection healthcheck",
     },
     "description": {"en": "process that checks for health of collections"},
     "jobControlOptions": ["sync-execute", "async-execute"],

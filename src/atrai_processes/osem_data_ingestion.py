@@ -19,11 +19,11 @@ LOGGER = logging.getLogger(__name__)
 
 METADATA = {
     "version": "0.2.0",
-    "id": "statistics",
+    "id": "osem data ingestion",
     "title": {
-        "en": "statistics",
+        "en": "osem data ingestion",
     },
-    "description": {"en": "processes to calculate statistics"},
+    "description": {"en": "ingest all osem datat per campaign"},
     "jobControlOptions": ["sync-execute", "async-execute"],
     "keywords": ["process"],
     "links": [
