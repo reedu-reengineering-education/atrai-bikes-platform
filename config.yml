@@ -95,6 +95,12 @@ resources:
     processor:
       name: atrai_processes.AnnotateRoads
     type: process
+  traffic_stops_detector: 
+    processor: 
+      name: atrai_processes.traffic_stops.TrafficStops
+    title: Traffic Stop Detection 
+    description: Calculates traffic stops for osem bike sensor data using Moving Pandas
+    type: process
   # COLLECTIONS
   osem_bike_data:
     description: "openSenseMap bike data"
