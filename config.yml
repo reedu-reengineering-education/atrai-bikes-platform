@@ -63,10 +63,6 @@ resources:
     processor:
       name: atrai_processes.Distances
     type: process
-  osem_data_ingestion:
-    processor:
-      name: atrai_processes.OsemDataIngestion
-    type: process
   pm-analysis:
     processor:
       name: atrai_processes.PMAnalysis

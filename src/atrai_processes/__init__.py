@@ -6,7 +6,6 @@ from .pm_analysis import PMAnalysis
 from .dangerous_places import DangerousPlaces
 from .statistics import Statistics
 from .road_network import RoadNetwork
-from .osem_data_ingestion import OsemDataIngestion
 #from .Atrai_processor import AtraiProcessor
 from .simple_process import SimpleProcess
 from .collection_delete import CollectionDelete
