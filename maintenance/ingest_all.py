@@ -57,21 +57,8 @@ campaigns = [
 
 d = dict()
 
-if ingestion:
-    print(f"starting with osem_data_ingestion")
-    endpoint = os.path.join(api_url_base, f"processes/osem_data_ingestion/execution?f=json")
-    payload = {
-        "inputs": {
-            "token": token
-        }
-    }
-    try:
-        res = requests.post(endpoint, json=payload)
-        print("osem_data_ingestion successful")
-        d['osem_data_ingestion'] = res.status_code
-    except requests.exceptions.RequestException as e:
-        print(f"Error: {e}")
-
+# Note: osem_data_ingestion is now handled by sensor-data-sync service
+# Data is continuously synced from OpenSenseMap API to the osem_bike_data table
 
 for campaign in campaigns:
     for process in processes:

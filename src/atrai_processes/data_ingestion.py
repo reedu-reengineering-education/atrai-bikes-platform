@@ -60,7 +60,7 @@ class DataIngestion(BaseProcessor):
                      {"city": "Mainz", "country": "Germany"}],
             }
         }
-        # 'osem_data_ingestion' needs to run anyways always
+        # NOTE: Sensor data ingestion is now handled by sensor-data-sync service
         self.processes = [
             'road_network',
             'distances',
@@ -100,10 +100,7 @@ class DataIngestion(BaseProcessor):
             processes = self.processes
         else:
             if isinstance(self.input_processes, list) and set(self.input_processes).issubset(set(self.processes)) and len(self.input_processes) > 0:
-                if 'osem_data_ingestion' in self.input_processes:
-                    raise ProcessorExecuteError(f"'osem_data_ingestion' not allowed in list")
-                else:
-                    processes = self.input_processes
+                processes = self.input_processes
             else:
                 raise ProcessorExecuteError(f"processes is not a list or 'all'")
 
@@ -115,19 +112,8 @@ class DataIngestion(BaseProcessor):
             else:
                 raise ProcessorExecuteError(f"campaigns is not a list or 'all'")
 
-        LOGGER.debug(f"starting with osem_data_ingestion")
-        endpoint = os.path.join(self.api_url_base, f"processes/osem_data_ingestion/execution?f=json")
-        payload = {
-            "inputs": {
-                "token": self.token
-            }
-        }
-        try:
-            requests.post(endpoint, json=payload).raise_for_status()
-            LOGGER.debug("osem_data_ingestion successful")
-        except requests.exceptions.RequestException as e:
-            LOGGER.debug(f"Error: {e}")
-
+        # NOTE: Sensor data ingestion is now handled by the sensor-data-sync service
+        # Data is continuously synced from OpenSenseMap API to the osem_bike_data table
 
         for campaign in campaigns:
             for process in processes:
